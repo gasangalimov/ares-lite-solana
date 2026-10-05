@@ -95,7 +95,8 @@ immutable forever. Conditions (all required, separate owner decision):
 
 | Item | State |
 |---|---|
-| Devnet/local upgrade authority | single deployer key (stage 1) |
-| Multisig transfer | prepared (this document), **not executed** |
+| Devnet upgrade authority (`ares-lite-devnet-v0.1`) | **2-of-3 Squads v4 multisig** `Fsocn2bJxHfGuk2JSjzNSGV9F2DBHadBXHL5tXM3kozH`, vault `3Z2PMt7dxrMZjUXqBLFkAxrQwW7QXmBR3f7G76yE1GDA`, time lock 120 s (rehearsal) |
+| Devnet protocol admin | **2-of-3 Squads v4 multisig** `2o9AHvqk1RJkrzQd6G3MuKarBESe9WV18qDxu2gFbxko`, vault `8CmWkaNDFG9ukSWSgtswnm1QvMkVg7xuE4woCaatwz36` |
+| Transfer, negative tests, 2-of-3 same-bytes upgrade after time lock | **PASS on devnet**: DEVNET_EVIDENCE.md |
+| Mainnet | **not deployed**. Requires: independent member custody (hardware wallets, separate people), time lock 24–72 h, owner GO |
 | `--final` | **not executed**; prohibited without a separate decision |
-| Mainnet | **not deployed** |

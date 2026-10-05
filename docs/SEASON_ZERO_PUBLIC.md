@@ -39,7 +39,8 @@ improve? `ares_lite.py season-metrics` reports:
 | Metric | Meaning |
 |---|---|
 | `participants`, `submissions` | totals |
-| `return_iteration_rate` | share of participants with ≥ 2 submissions |
+| `return_iteration_rate` | **headline**: among participants with a first VALID submission, how many made a 2nd, 3rd and 5th submission (counted from that first valid one) |
+| `any_return_rate` | share of all participants with ≥ 2 submissions |
 | per participant `first` / `second` / `third` | state and score of each submission in commit order |
 | `participants_improving_on_own_first` | came back **and** beat their own first submission |
 | `best_improvement_bps` | best improvement over the season baseline |

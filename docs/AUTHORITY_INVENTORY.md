@@ -1,6 +1,6 @@
 # ARES Lite — Authority inventory
 
-Status: **Updated for program v3.** v3 is v2 (fixed supply) plus:
+Status: **Updated for program v3 and the devnet multisig rehearsal** (SECURITY_MODEL.md has the per-power table). v3 is v2 (fixed supply) plus:
 - an on-chain epoch cap;
 - a pinned close;
 - a verification window;
@@ -22,10 +22,10 @@ The v1 table below (mint authority = PDA) is superseded.
 
 | Authority | Holder | Capability | Can bypass caps? | Rotation | Mainnet acceptable? |
 |---|---|---|---|---|---|
-| **Program upgrade authority** (ProgramData) | deployer key (stage 1) | replace program code | **YES for the vault and schedule**: new code could transfer vault ARES or ignore the schedule. It **cannot mint**, because the SPL mint authority is None, and that holds regardless of program code. The vault-authority PDA signs for whatever the program id runs, so a PDA does **not** protect against this | `solana program set-upgrade-authority` → multisig plus timelock, or `--final` | **NO** as a single key |
+| **Program upgrade authority** (ProgramData) | devnet v0.1: **2-of-3 Squads v4 multisig** (vault `3Z2PMt7d…`, time lock 120 s; DEVNET_EVIDENCE.md). Earlier stage: deployer key | replace program code | **YES for the vault and schedule**: new code could transfer vault ARES or ignore the schedule. It **cannot mint**, because the SPL mint authority is None, and that holds regardless of program code. The vault-authority PDA signs for whatever the program id runs, so a PDA does **not** protect against this | `solana program set-upgrade-authority` → multisig plus timelock, or `--final` | **NO** as a single key |
 | **SPL mint authority** | **None** (revoked at genesis) | — | — | impossible to set again | Yes |
 | **Freeze authority** | **None** | — | — | — | Yes |
-| **Lite protocol admin** (`config.admin`) | deployer key; `set_admin` → multisig | create seasons; publish one root per season; award funded bounties | **NO** for schedule and supply: commitments ≤ `unlocked(now)`, claims ≤ committed, no mint, no burn of others. **YES** for *who* gets an unlocked epoch budget or an escrowed bounty | `set_admin` | NO as a single key; multisig minimum |
+| **Lite protocol admin** (`config.admin`) | devnet v0.1: **2-of-3 Squads v4 multisig** (vault `8CmWkaND…`); old deployer rejected with NotAdmin | create seasons; publish one root per season; award funded bounties | **NO** for schedule and supply: commitments ≤ `unlocked(now)`, claims ≤ committed, no mint, no burn of others. **YES** for *who* gets an unlocked epoch budget or an escrowed bounty | `set_admin` | NO as a single key; multisig minimum |
 | **Reward publisher** | = protocol admin | chooses the epoch winner (root) | bounded by `unlocked(now)`; omission possible | `set_admin` | NO without accepting the omission trust assumption |
 | **Vault authority** | PDA `["vault_authority", mint]`, no key | signs vault transfers only inside `claim` | NO (program logic), unless the program is upgraded | — | depends on the upgrade authority |
 | **Bounty escrow authority** | bounty PDA, no key | pays the escrow once in `award_bounty` | NO | — | depends on the upgrade authority |

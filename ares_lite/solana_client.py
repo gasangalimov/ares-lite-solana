@@ -212,14 +212,29 @@ class Rpc:
         self._client = httpx.Client(timeout=30)
         self._id = 0
 
-    def call(self, method: str, params: list | None = None):
-        self._id += 1
-        response = self._client.post(self.url, json={"jsonrpc": "2.0", "id": self._id, "method": method, "params": params or []})
-        response.raise_for_status()
-        body = response.json()
-        if "error" in body:
-            raise RuntimeError(f"{method}: {body['error']}")
-        return body["result"]
+    RETRYABLE_HTTP = (429, 502, 503, 504)
+
+    def call(self, method: str, params: list | None = None, attempts: int = 8):
+        """JSON-RPC call. Public RPC endpoints rate-limit (HTTP 429); those and transient
+        gateway errors are retried with exponential backoff (honouring Retry-After).
+        Resending the same signed transaction is idempotent (same signature)."""
+
+        for attempt in range(attempts):
+            self._id += 1
+            response = self._client.post(self.url, json={"jsonrpc": "2.0", "id": self._id, "method": method,
+                                                          "params": params or []})
+            if response.status_code in self.RETRYABLE_HTTP and attempt + 1 < attempts:
+                time.sleep(min(30.0, float(response.headers.get("retry-after") or 0) or 0.5 * 2 ** attempt))
+                continue
+            response.raise_for_status()
+            body = response.json()
+            if "error" in body:
+                if body["error"].get("code") == 429 and method != "requestAirdrop" and attempt + 1 < attempts:
+                    time.sleep(min(30.0, 0.5 * 2 ** attempt))
+                    continue
+                raise RuntimeError(f"{method}: {body['error']}")
+            return body["result"]
+        raise RuntimeError(f"{method}: retries exhausted")
 
     def blockhash(self) -> bytes:
         return b58decode(self.call("getLatestBlockhash", [{"commitment": "confirmed"}])["value"]["blockhash"])
@@ -295,7 +310,7 @@ class Rpc:
                 raise RuntimeError(f"transaction failed: {status['err']}")
             if status and status.get("confirmationStatus") in ("confirmed", "finalized"):
                 return
-            time.sleep(0.5)
+            time.sleep(1.0)
         raise TimeoutError(signature)
 
     def beacon(self, slot: int) -> tuple[int, bytes]:

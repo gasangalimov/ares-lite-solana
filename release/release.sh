@@ -58,7 +58,7 @@ solana config set --url "$URL" --keypair "$KEYS/deployer.json" >/dev/null
 if [[ "$CLUSTER" != "mainnet-beta" ]]; then solana airdrop 5 "$DEPLOYER" >/dev/null || true; fi
 
 step "1b" "deploy program (upgrade authority = deployer, stage 1)"
-DEPLOY_SIG=$(solana program deploy --program-id "$KEYS/program.json" "$SO" --output json | $PY -c "import json,sys;print(json.load(sys.stdin).get('signature',''))")
+DEPLOY_SIG=$(solana program deploy --use-rpc --program-id "$KEYS/program.json" "$SO" --output json | $PY -c "import json,sys;print(json.load(sys.stdin).get('signature',''))")
 solana program show "$PROGRAM_ID" --output json > "$OUT/program_show.json"
 ONCHAIN_HASH=$(solana program dump "$PROGRAM_ID" "$OUT/onchain.so" >/dev/null && sha256sum "$OUT/onchain.so" | cut -d' ' -f1)
 # The dumped ProgramData is padded; compare the prefix of the deployed length.

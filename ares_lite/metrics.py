@@ -44,6 +44,19 @@ def season_metrics(commits: list[tuple[int, str]], results: dict, metadata: list
             "best_improvement_bps": max(valid) if valid else None,
             "improved_on_own_first": len(valid) > 1 and max(valid[1:]) > valid[0],
         })
+    # Headline metric: return iteration rate in the cohort of participants whose
+    # submissions include at least one VALID one. A return iteration is any
+    # further submission made after (and including) that first valid one.
+    first_valid_cohort = {}
+    for address, seqs in per_address.items():
+        states = [("valid" if scored.get(s, {}).get("valid") else "other") for s in seqs]
+        if "valid" in states:
+            first_valid_cohort[address] = len(seqs) - states.index("valid")  # submissions from the first valid one on
+    n = len(first_valid_cohort)
+    def share(k: int) -> dict:
+        count = sum(1 for c in first_valid_cohort.values() if c >= k)
+        return {"participants": count, "rate": round(count / n, 4) if n else 0.0}
+    return_iteration = {"cohort_first_valid_submission": n, "made_2nd": share(2), "made_3rd": share(3), "made_5th": share(5)}
     meta_by_seq = {m["commit_seq"]: m for m in metadata}
     pools = Counter(m["pool"] for m in metadata if m.get("pool"))
     agents = Counter(agent for m in metadata for agent in m.get("ai_agents", ()))
@@ -52,9 +65,10 @@ def season_metrics(commits: list[tuple[int, str]], results: dict, metadata: list
     best = [p["best_improvement_bps"] for p in participants if p["best_improvement_bps"] is not None]
     return {
         "status": "points-only Season Zero metrics; no token, no airdrop, no reward promise",
+        "return_iteration_rate": return_iteration,
         "participants": total,
         "submissions": len(commits),
-        "return_iteration_rate": round(returning / total, 4) if total else 0.0,
+        "any_return_rate": round(returning / total, 4) if total else 0.0,
         "participants_with_2plus_submissions": returning,
         "participants_with_3plus_submissions": sum(1 for p in participants if p["submissions"] >= 3),
         "participants_improving_on_own_first": sum(1 for p in participants if p["improved_on_own_first"]),

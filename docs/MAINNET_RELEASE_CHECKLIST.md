@@ -74,7 +74,7 @@ Conditions that must be met before mainnet:
 3. **At least one independent watcher** runs `verify-season` on every published epoch inside the window.
 4. **External audit** of program v3.
 5. **Legal review** of a token launch with a 10% creator allocation.
-6. **Public devnet run** of `release/full_run.sh` (22 steps). It is blocked in the build environment (HTTP 403); it passed on a local validator.
+6. ~~Public devnet run of `release/full_run.sh` (22 steps)~~ **DONE 2026-10-05: all 22 steps passed on devnet** (private research notes, not published); program `7Xeon6BKCnAf8tNxuM7ZbaQjXH7AyPcjxtSFtxTxvHDc`).
 
 Known limits, not blockers (documented and accepted as v0):
 - single verifier implementation;

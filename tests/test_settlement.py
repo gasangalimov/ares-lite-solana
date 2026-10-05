@@ -246,6 +246,15 @@ class MetricsTests(unittest.TestCase):
         self.assertEqual(out["ai_agents_declared"], {"agent-x": 2, "agent-y": 1})
         alice = [p for p in out["per_participant"] if p["address"] == a][0]
         self.assertEqual([alice[k]["commit_seq"] for k in ("first", "second", "third")], [1, 3, 4])
+        cohort = out["return_iteration_rate"]  # headline metric: cohort = first VALID submission
+        self.assertEqual(cohort["cohort_first_valid_submission"], 1)  # b only invalid, c only unrevealed
+        self.assertEqual((cohort["made_2nd"]["participants"], cohort["made_3rd"]["participants"],
+                          cohort["made_5th"]["participants"]), (1, 1, 0))
+        late = season_metrics([(1, b), (2, b), (3, b), (4, b), (5, b), (6, b)],
+                              {"baseline": {"fuel": 1000}, "score_table": [
+                                  {"commit_seq": 1, "valid": False, "score": 0}, {"commit_seq": 2, "valid": True, "score": 900}]}, [])
+        # counting starts at the first valid submission: seqs 2..6 = 5 submissions
+        self.assertEqual(late["return_iteration_rate"]["made_5th"]["participants"], 1)
         unrevealed = [p for p in out["per_participant"] if p["address"] == c][0]
         self.assertEqual(unrevealed["first"]["state"], "unrevealed")
         self.assertNotIn("price", repr(out).lower())

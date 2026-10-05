@@ -8,7 +8,7 @@ a fixed reward reserve by a native Solana program. This repository contains
 the **settlement layer**: the SPL-token program, its tests, the client,
 supply/tokenomics tooling and the devnet release tooling.
 
-> **Current status: `DEVNET / TEST-ONLY`**
+> **Current release: DEVNET / TEST-ONLY.**
 >
 > - No mainnet deployment yet.
 > - No token sale.
@@ -16,6 +16,28 @@ supply/tokenomics tooling and the devnet release tooling.
 > - Devnet/test software only.
 >
 > This page makes no statement about price, returns or value.
+
+## Season Zero: Build a better algorithm. Beat the baseline.
+
+Points only: no ARES rewards, no airdrop promise, no retrospective token
+allocation, no mainnet. Any GPUs, CPUs, AI agents, API budgets, teams and
+mining pools are allowed: **equality of rules, not equality of resources**.
+Identical copies in many wallets resolve to one result. Rules:
+[`docs/SEASON_ZERO_RULES.md`](docs/SEASON_ZERO_RULES.md) · how to take part:
+[`docs/PARTICIPATE.md`](docs/PARTICIPATE.md) · leaderboard:
+[`docs/LEADERBOARD.md`](docs/LEADERBOARD.md).
+
+## Documentation
+
+| | |
+|---|---|
+| [Quick start](docs/QUICKSTART.md) | build, test, local validator and devnet |
+| [Architecture](docs/ARCHITECTURE.md) | components, trust per layer |
+| [Security model](docs/SECURITY_MODEL.md) | what nobody can do, remaining powers and their bounds, multisig |
+| [Tokenomics](docs/TOKENOMICS_LITE_V0.md) | fixed supply, halving schedule, burn |
+| [Season Zero rules](docs/SEASON_ZERO_RULES.md) · [Participate](docs/PARTICIPATE.md) · [Leaderboard](docs/LEADERBOARD.md) | points-only competition |
+| [Devnet evidence](docs/DEVNET_EVIDENCE.md) | every address, signature and negative-test code |
+| [FAQ](docs/FAQ.md) | |
 
 ## Token model (ARES, program v3)
 
@@ -91,6 +113,6 @@ Solana settlement layer.
 
 ## Trust model (honest)
 
-- The upgrade authority is a single deployer key on devnet; a multisig transfer is planned ([`docs/UPGRADE_AUTHORITY_PLAN.md`](docs/UPGRADE_AUTHORITY_PLAN.md)).
+- On the devnet deployment, the upgrade authority is a **2-of-3 Squads v4 multisig with a time lock**, and the protocol admin is a separate **2-of-3 multisig**. The old single deployer key is rejected on-chain ([`docs/DEVNET_EVIDENCE.md`](docs/DEVNET_EVIDENCE.md)). The program is not immutable (`--final` was not executed).
 - The program cannot run the WASM verifier, so a wrong epoch root is bounded by one epoch cap and detectable during the verification window, not prevented on-chain ([`docs/DETERMINISTIC_FINALIZE.md`](docs/DETERMINISTIC_FINALIZE.md)).
 - There is no external audit yet.
