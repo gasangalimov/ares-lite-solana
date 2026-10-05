@@ -229,11 +229,30 @@ class Season:
             return ev.valid, ev.reason, ev.benchmark_fuel
 
         if baseline_fuel is None:
-            ok, _, baseline_fuel = run((self.path / "baseline.wasm").read_bytes())
-            if not ok:
-                raise ClientError("the baseline itself is invalid on this machine")
+            # The reference is the baseline's fuel on the benchmark cases only: its fuel is
+            # heavy-tailed, so on some instances it exceeds the per-test cap on a practice
+            # gate case. A candidate still has to pass the full gate below.
+            baseline_fuel = self.baseline_benchmark_fuel(case_list)
         valid, reason, fuel = run(module)
         return Practice(valid, reason, fuel, baseline_fuel)
+
+    def baseline_benchmark_fuel(self, case_list) -> int:
+        from .evaluation import benchmark_fuel
+
+        work = self.workdir()
+        challenge = work.challenge()
+        raw = (self.path / "baseline.wasm").read_bytes()
+        if getattr(challenge, "is_scaled", False):
+            from .scaled import run_cases
+
+            res = run_cases(challenge, raw, case_list)
+            ok, fuel, reason = res.valid, res.fuel, res.reason
+        else:
+            ok, fuel, reason = benchmark_fuel(challenge, raw, case_list)
+        if not ok:
+            raise ClientError(f"the published baseline fails the practice benchmark ({reason}); "
+                              "the season files are inconsistent")
+        return fuel
 
     # ---- commit / reveal
     def commit(self, module: bytes, address: bytes, pool: str = "", agents: list[str] | None = None,

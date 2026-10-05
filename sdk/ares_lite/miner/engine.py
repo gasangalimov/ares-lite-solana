@@ -132,8 +132,8 @@ class Miner:
         self._set(season=manifest.name, epoch=manifest.season_id, challenge_id=work.challenge().challenge_id.hex(), error=None)
         if self.snapshot.get("baseline_fuel") is None:
             base = self.season.practice((self.season.path / "baseline.wasm").read_bytes())
-            self._set(baseline_fuel=base.fuel)
-            self.log("info", f"baseline practice fuel {base.fuel:,}")
+            self._set(baseline_fuel=base.baseline_fuel)
+            self.log("info", f"baseline practice fuel {base.baseline_fuel:,}")
         best_committed = max((s.get("practice_score_bps") or -10**9 for s in self.season.state()["submissions"]
                               if s.get("commit_seq") is not None), default=None)
         committed_hashes = {s["module_sha256"] for s in self.season.state()["submissions"]}
