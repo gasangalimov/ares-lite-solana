@@ -54,6 +54,23 @@ only 24 h epochs.
 - leaderboard: `rank 1 = 3a8QWX…LLVZ 45.19% (final hidden cases); identical module from 4QHMbH…gfuR marked duplicate_of commit #1, no rank`
 - return_iteration_rate: `{'cohort_first_valid_submission': 2, 'made_2nd': {'participants': 1, 'rate': 0.5}, 'made_3rd': {'participants': 0, 'rate': 0.0}, 'made_5th': {'participants': 0, 'rate': 0.0}}`
 
+## Season Zero launch rehearsal: scheduled round, unattended close
+
+- result: `PASS (operator on HTTPS behind Caddy in a container; NOT yet on a public host)`
+- flow: `fresh public clone (8e9385b) -> pip install -> conformance -> ares-miner -> connect public address -> join https operator -> challenge recomputed + on-chain manifest check -> starter solver -> 2 commits -> scheduled commit close -> Miner auto-revealed within ~1 s -> unattended on-chain close/finalize/publish -> verify 9/9 (both participants) -> leaderboard`
+- devnet_epoch: `772`
+- epoch_account: `J67CStgketDHEA5NhyKA8UV9nhr2JEGH2EmWx8GU97Sv`
+- manifest_hash: `d2d6bae06636a9f0d531dc14499883a816d3218b1f5eb156f58c53809f2b1d5d`
+- schedule: `{'opens_at': '2026-10-05T17:28:44Z', 'commits_close_at': '2026-10-05T17:50:00Z', 'reveals_close_at': '2026-10-05T18:01:03Z', 'onchain_close_window': ['2026-10-05T18:02:33Z', '2026-10-05T18:02:45Z'], 'results_expected_by': '2026-10-05T18:17:33Z'}`
+- round_closed_at: `2026-10-05T18:04:46Z`
+- onchain_status: `FINAL`
+- reward_total: `0`
+- results_digest: `04dd4f8746939bdc12db9dc763795b1a64236edafc32b5e2a3eff1c623dbb934`
+- signatures: `{'create_epoch': 'BDtJqQKABT1Z8ehvTxG8tKCCWGgbDxedzNabm29RXV7YT9cPcxnrsAzQRSvtqi14xxLXe5kWqq1acJb9F58khAy', 'close_epoch': '2hfT77kHBkvPzfWzzJycXPX8f59GsmGqbQis47N9ZDTsdUEGwAFnDum7sMv1jkdhriwa31pExdkaUCaCS7mfbdDD', 'publish_result': '5UAYHNycFHwLBwoGNX4cEQ963RCan4QvVnLG1nB1rbMUhTzMY3z15oPwYLRME7VMWKg6ABJk28FBdaaenqmV7VG6', 'finalize_epoch': 'BML5KonMYVe3sZksMLXWE75bXrVPQoqdC3sRrh5c4BuvTtmFbwmawopVeawxUaEz41qCTLmzJxg2SVEusrEoQte'}`
+- signature_status: `{'create_epoch': 'finalized', 'close_epoch': 'finalized', 'publish_result': 'finalized', 'finalize_epoch': 'finalized'}`
+- admin_path: `create/close/publish via Squads admin multisig, members 1+2 (member 3 free for an independent holder)`
+- windows: `GitHub Actions run 37350490335: windows-latest py3.10 + py3.12 and ubuntu: install, conformance, 17 SDK tests, 13-step Miner smoke all PASS`
+
 ## History
 
 The v0.1 deployment (program v3, superseded economics) remains unchanged as
