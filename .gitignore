@@ -1,9 +1,9 @@
-target/
-**/target/
 __pycache__/
-*.keypair.json
-*-keypair.json
-id.json
-.env
-.env.*
-release/out/
+*.pyc
+*.egg-info/
+build/
+dist/
+target/
+.venv/
+*.secret
+*keypair*.json

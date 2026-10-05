@@ -1,0 +1,42 @@
+[package]
+name = "ares-lite-graph-route-solver"
+version = "0.1.0"
+edition = "2021"
+description = "ARES Lite Season starter solver for the frozen CODE-SYNTH v0 GRAPH-ROUTE mode (ARES-WASM-V0)."
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = []
+# The default (baseline) search is depth-first branch-and-bound.
+# `naive` disables pruning and enumerates every walk; at difficulty 2 it can
+# exhaust the frozen per-test fuel limit (kept for calibration experiments).
+naive = []
+# Wide fixed workspace (256 edges / 64 vertices). The default workspace is
+# sized for the frozen profiles (vertex_max <= 22, edge_max <= 56) and spends
+# far less fuel on zero-initialisation; `wide` exists for calibration only.
+wide = []
+# Example algorithmic improvement: prune with a hop-limited lower bound on the
+# remaining cost to the target (reverse Bellman-Ford, constraints relaxed).
+lb = []
+# Example engineering improvement: 16-bit per-edge fields (bounds-checked).
+compact = []
+# ARES Lite scaled GRAPH-ROUTE configuration (profile L1): larger workspace.
+scaled = []
+# Algorithmic variant D1: state-dominance memoisation over
+# (depth, vertex, resource used, required class seen).
+memo = []
+# Algorithmic variant D2: admissible cost and resource bounds to the target
+# (reverse Bellman-Ford with the required-class flag).
+bound = []
+
+[profile.release]
+opt-level = "s"
+panic = "abort"
+lto = true
+codegen-units = 1
+debug = false
+strip = true

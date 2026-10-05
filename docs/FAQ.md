@@ -1,57 +1,43 @@
 # FAQ
 
-**Is this a token sale or an investment?**
-No. The current release is **DEVNET / TEST-ONLY**. There is:
-- no mainnet deployment;
-- no token sale;
-- no airdrop promised;
-- no statement about price or returns.
+**Is this a token sale, an investment or an airdrop?**
+No. This is a DEVNET / TEST-ONLY release. There is no mainnet, no sale, no
+airdrop promise and no statement about price or returns.
 
 **Does Season Zero pay ARES?**
-No. Season Zero is **points only**. Points have no value and will not be
-converted retrospectively into tokens.
+No. Season Zero is points only. Its manifests use the policy
+`season_zero_points_v0`, which allocates zero tokens, and the on-chain result
+total is 0. Points will not be converted into anything retrospectively.
 
-**Can I use 1,000 GPUs, Claude/Codex/other AI agents, a big API budget, a team?**
-Yes. The rule is *equality of rules, not equality of resources*. A stronger
-solver legitimately wins more.
+**Do I have to give my private key to ARES Miner?**
+Never. Mining needs only your public address. If you point the Miner at a
+Solana CLI keypair file, it reads only the public half.
+
+**Do I need Rust?**
+Only to *improve* the starter solver. Without Rust you can join, practice and
+submit the baseline. Your own solver can be in any language
+([SOLVER_CONTRACT.md](../sdk/SOLVER_CONTRACT.md)).
+
+**Can I use Claude, Codex, 1,000 GPUs, a team?**
+Yes. The rules are equal for everyone; resources are not capped. A stronger
+solver legitimately ranks higher.
 
 **Can I run 1,000 wallets?**
-Yes, but identical solvers in many wallets resolve to a single result: the
-earliest commit wins exact ties, so copies earn nothing. Extra wallets help
-only if each carries genuinely better work.
+You can, but identical solvers resolve to one result: equal scores rank by
+the earliest commit. Extra wallets help only with genuinely better work.
 
-**Can pools participate?**
-Yes. Submit under the pool's address. How a pool splits its result is up to
-the pool.
+**Pools?**
+Submit under the pool's address. The split is up to the pool.
 
-**Who can change the program?**
-On the devnet deployment, upgrades need **2 of 3** keys of a Squads v4
-multisig, plus a time lock. Season operations (close, publish, cancel,
-bounty award) need **2 of 3** keys of a separate admin multisig. The old
-single deployer key was rejected on-chain after the transfer
-([DEVNET_EVIDENCE.md](DEVNET_EVIDENCE.md)).
+**Why doesn't my rank show right after I commit?**
+Commitments are hashes, so nothing is scored until you reveal. ARES Miner
+reveals automatically when commits close. Your local best is shown the whole time.
 
-**Can anyone mint more ARES?**
-No. The mint authority was revoked inside the genesis transaction and the
-freeze authority was never set. This is enforced by SPL Token itself,
-regardless of program code.
-
-**What is the token model?**
-- 1,000,000,000 fixed supply;
-- 10% creator allocation (disclosed, no vesting);
-- 90% mining/community reserve in a program vault;
-- 5-year reward-distribution halving;
-- 10% burn on paid challenge bounties.
-
-See [TOKENOMICS_LITE_V0.md](TOKENOMICS_LITE_V0.md).
-
-**What can the operator still do?**
-See [SECURITY_MODEL.md](SECURITY_MODEL.md). In short:
-- the operator orders submissions;
-- the admin multisig publishes results, but only within an on-chain cap, against a pinned input log, and with a public verification window.
-
-A wrong result is detectable by anyone, not prevented on-chain.
+**Can the operator cheat?**
+It can refuse service. It cannot change the challenge, alter or reorder your
+submission without contradicting your signed receipt and the on-chain log
+head, or fake scores without failing public recomputation (`ares-lite verify`).
+See [SECURITY_MODEL.md](SECURITY_MODEL.md).
 
 **When mainnet?**
-There is no date and no commitment. Mainnet needs a separate owner decision,
-an external audit, a legal review and independent multisig custody.
+There is no date and no commitment.

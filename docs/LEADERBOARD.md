@@ -1,48 +1,41 @@
-# Leaderboard format
+# Leaderboard and metrics
 
-There are two boards. Only the final board decides the season.
+Operator endpoints (public, read-only). The same code ships in the SDK
+(`ares_lite/leaderboard.py`), so anyone can recompute both outputs.
 
-## Live practice board (during the season, feedback only)
+## `GET /leaderboard`
 
-`GET /board` returns a JSON array sorted by `practice_fuel` ascending (valid first):
+One row per reward address, sorted by rank:
 
 | Field | Meaning |
 |---|---|
-| `commit_seq` | position in the hash-chained receipt log |
-| `address` | reward address (base58 or hex) of the submission |
-| `reason` | `OK` or the first failing gate (e.g. `GATE_WRONG_OUTPUT`) |
-| `practice_fuel` | fuel on the **public** practice cases. Everyone can reproduce and overfit it, so it is not the score |
+| `rank` | 1 = best. Ordered by best score, then by the earliest commit reaching it. `null` until a valid reveal |
+| `address`, `address_b58` | reward address (wallet, pool or multisig), hex and base58 |
+| `best_score_bps` | best improvement over the baseline in basis points (integer) |
+| `best_commit_seq` | receipt-log position of that submission |
+| `submissions`, `revealed`, `valid` | counts |
+| `history[]` | `commit_seq`, `revealed`, `valid`, `score_bps`, `unix` (acceptance time, non-consensus), `solver` |
+| `first_commit_unix`, `last_commit_unix` | timestamps (non-consensus) |
+| `metadata` | optional self-declared `pool`, `solver`, `ai_agents` (never scored) |
+| `score_source` | `practice (public cases, live)` during the season; `final (hidden cases)` after results |
 
-## Final board (after close)
+## `GET /metrics`
 
-Published as `results.json`. The season's on-chain record holds its
-`score_table_digest` and Merkle root, so anyone can recompute both from the
-public files.
+Season Zero metrics (`ares_lite.metrics`):
+- `return_iteration_rate`: within the cohort of participants with a first valid
+  submission, the number and rate that made a **2nd**, **3rd** and **5th** submission;
+- `any_return_rate`, `participants_with_2plus_submissions`, `participants_improving_on_own_first`;
+- `best_improvement_bps`, pool participation, declared AI agents, evaluation cost;
+- `per_participant` first/second/third attempt details.
 
-| Column | Meaning |
-|---|---|
-| `rank` | by `score` ascending among valid submissions; ties: earliest `commit_seq` |
-| `address` | reward address (wallet, pool or multisig) |
-| `commit_seq` | receipt-log position |
-| `solution_hash` | hash of the revealed solution |
-| `valid` | all-or-nothing correctness on the solution-bound gate tests |
-| `score` | fuel on the hidden post-close benchmark cases (lower is better) |
-| `improvement_bps` | `(baseline − score) / baseline × 10,000` |
-| `points` | the epoch's points for the winner (`winner_takes_epoch_v0`); 0 otherwise |
+## `GET /status`
 
-Example row:
+Returns `phase` (`OPEN` / `CLOSE_COMMITS` / `CLOSE_REVEALS`), log `head`,
+counts, `manifest_hash`, `reward_policy` and `points_only`.
 
-```json
-{"rank": 1, "address": "5gzQP5u5nMGUJeq4JDzW55GuftUdd75S7iwcYtrfx5QF", "commit_seq": 6,
- "valid": true, "score": 1826385, "improvement_bps": 3699, "points": 100}
-```
+## Final results
 
-This example is taken from the devnet evidence run: baseline 2,898,592, best
-1,826,385, −36.99%.
-
-## Season metrics (published with the final board)
-
-`return_iteration_rate` counts the cohort of participants with a first valid
-submission, and how many of them made a 2nd, 3rd and 5th submission. Also
-published: `any_return_rate`, best improvement, pool participation, declared
-agents and evaluation cost. These are never used for points.
+`GET /results.json` holds the full score table, the baseline and the
+`score_table_digest`. The digest and the result root are pinned in the
+epoch's Solana account. `ares-lite verify` recomputes everything and compares
+it with the chain.

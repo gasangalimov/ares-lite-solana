@@ -1,11 +1,10 @@
-# Security
+# Security policy
 
-ARES Lite is devnet/test software. Do not use it with real value.
+DEVNET / TEST-ONLY software with no external audit. Do not use it with real funds.
 
-Please report vulnerabilities privately to the repository owner through GitHub
-(Security → Report a vulnerability) rather than in a public issue.
+Report vulnerabilities privately through GitHub: **Security → Report a vulnerability** on this repository.
+Please include the affected component (`solana/program`, `sdk/ares_lite`, ARES Miner), steps to reproduce, and the impact.
 
-Known, documented trust assumptions (docs/SECURITY_MODEL.md):
-- upgrade authority: 2-of-3 Squads v4 multisig with a time lock on devnet (not immutable);
-- the admin publishes epoch roots, bounded by the on-chain epoch cap and a public verification window (docs/DETERMINISTIC_FINALIZE.md);
-- no external audit.
+Scope highlights: on-chain fund or authority bypasses, commitment/reveal binding breaks,
+verifier non-determinism, receipt-log equivocation, private-key or salt leakage from the SDK/Miner,
+local-app request forgery, and solver sandbox escapes (paths, symlinks, sizes, shell).

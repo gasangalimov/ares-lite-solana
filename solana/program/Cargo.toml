@@ -2,7 +2,7 @@
 name = "ares-lite-rewards"
 version = "0.1.0"
 edition = "2021"
-description = "ARES Lite (DEVNET/TEST-ONLY) season reward commitments and Merkle claims over a classic SPL Token mint."
+description = "ARES Lite (DEVNET/TEST-ONLY) v4 frozen economics: fixed 100M supply, founder vesting, remaining-reserve epoch rewards, Merkle claims."
 license = "MIT"
 publish = false
 
@@ -11,6 +11,9 @@ crate-type = ["cdylib", "lib"]
 
 [features]
 no-entrypoint = []
+# DEVNET rehearsal build only: accepts epochs shorter than 24 h (all windows and
+# vesting scale with the epoch). The production build rejects anything but 86,400 s.
+devnet-time-scale = []
 
 [dependencies]
 solana-program = "2.3"

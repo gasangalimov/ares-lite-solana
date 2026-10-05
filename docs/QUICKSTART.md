@@ -1,55 +1,77 @@
-# Quick start
+# Quickstart
 
-> **Current release: DEVNET / TEST-ONLY.** Do not use with real value.
+> DEVNET / TEST-ONLY. Season Zero is POINTS-ONLY: no token reward, no airdrop promise.
 
-## Requirements
+## 0. Requirements
 
-- Rust (stable). The LiteSVM tests pin 1.97.1 in `solana/tests-svm/rust-toolchain.toml`.
-- Solana CLI (Agave 3.x) with `cargo-build-sbf`.
-- Python ≥ 3.12 with `httpx` and `pycryptodome`.
+- Python 3.10+ (Windows, Linux; macOS works the same way).
+- Optional but needed to *improve* a solver: Rust (`https://rustup.rs`) plus
+  `rustup target add wasm32-unknown-unknown`. Without Rust you can still
+  join, practice and submit the baseline.
+- A Solana **devnet** wallet address (Phantom/Solflare in devnet mode, or
+  `solana-keygen new`). You only ever paste its **public** address.
 
-## Build and test locally
+## 1. Install
 
-```bash
-git clone https://github.com/gasangalimov/ares-lite-solana && cd ares-lite-solana
-cd solana/program && cargo build-sbf -- --locked && cargo test --locked && cd ../..
-sha256sum solana/program/target/deploy/ares_lite_rewards.so     # expect eeac5f03…858e7
-cd solana/tests-svm && cargo test --release --locked && cd ../..   # 16 LiteSVM tests
-python3 -m unittest discover -s tests                             # settlement tests
+```
+git clone https://github.com/gasangalimov/ares-lite-solana
+cd ares-lite-solana/sdk
+python -m pip install .
 ```
 
-## Local validator rehearsal (genesis + fixed-supply release checks)
+## 2a. ARES Miner (recommended)
 
-```bash
-solana-test-validator --reset &            # in another terminal
-solana-keygen new -o /tmp/founder.json     # any founder wallet you control
-CLUSTER=localnet FOUNDER_WALLET=$(solana-keygen pubkey /tmp/founder.json) release/release.sh
+```
+ares-miner
 ```
 
-The script:
-- deploys the program;
-- runs the atomic genesis: 1B minted, 100M to the founder, 900M to the vault, mint authority revoked;
-- verifies supply, authorities, the schedule and the vault;
-- runs the mint-death test and simulates a 10% bounty burn.
+1. **Wallet:** paste your devnet public address. You can also give the path of a
+   Solana CLI keypair file; only its public half is read, and the secret half is
+   never stored or sent.
+2. **Season:** paste the operator URL from the season announcement, then
+   **Join**. The Miner downloads the season, recomputes the challenge from the
+   manifest and Solana beacon, and checks the manifest hash on devnet.
+3. **START MINING.** You can watch the iterations, your local best score,
+   commits, reveals, rank and finally the verification result. **Stop** at any
+   time. Your state is on disk, so pressing START again resumes.
 
-It stops on any mismatch.
+Advanced options:
+- choose a solver: `builtin:starter`, `builtin:baseline`, or the path to your own `solver.json`;
+- set the number of CPU workers;
+- set a pool name (metadata only);
+- view the log;
+- reveal manually.
 
-## Devnet
+Headless (servers/VMs): `ares-miner --headless --server URL --address <PUBKEY> [--solver path/to/solver.json]`.
 
-```bash
-python3 release/budget.py --rpc https://api.devnet.solana.com   # exact SOL needed (≈ 0.70 SOL incl. deploy)
-CLUSTER=devnet FOUNDER_WALLET=<base58> release/release.sh
+## 2b. Command line
+
+```
+ares-lite join --server URL                       # season files + local challenge check + on-chain manifest check
+ares-lite solve --solver builtin:starter          # one solver iteration -> my.wasm + local practice score
+ares-lite practice --module my.wasm               # score any module locally
+ares-lite submit --module my.wasm --address <PUBKEY>   # commit now (salt stays local)
+ares-lite reveal                                  # during the reveal phase
+ares-lite status                                  # phase, leaderboard, receipts check
+ares-lite verify                                  # after close: recompute the result yourself
 ```
 
-## Inspect the public devnet deployment
+## 3. Write your own solver (10 minutes, or ask an AI agent)
 
-```bash
-python3 cli/ares_lite_chain.py verify-fixed-supply --rpc https://api.devnet.solana.com \
-  --program-id 7Xeon6BKCnAf8tNxuM7ZbaQjXH7AyPcjxtSFtxTxvHDc --mint J79qQp757mrFA4Jn3SY3SvA1MFsQRNCW8CTxgJzakmQA
+```
+cp -r examples/solvers/my_rust_solver ~/my_solver
+ares-lite solve --solver ~/my_solver              # first run copies the starter crate into ~/my_solver/crate
 ```
 
-See [DEVNET_EVIDENCE.md](DEVNET_EVIDENCE.md) for every address and signature.
+Edit `~/my_solver/crate/src/lib.rs`. A brief you can hand to an AI agent:
 
-## Participating in Season Zero
+> "Improve `solve()` in crate/src/lib.rs (ARES Lite GRAPH-ROUTE). It must stay
+> correct on every input: a single wrong answer makes it invalid. Score =
+> metered WebAssembly fuel, lower is better. Keep the ARES-WASM-V0 rules from
+> the file header (no floats, no data sections, no panics, no imports beyond
+> memory). Measure with `ares-lite solve --solver ~/my_solver`."
 
-See [PARTICIPATE.md](PARTICIPATE.md).
+Then point ARES Miner at `~/my_solver/solver.json` (Advanced → Solver).
+
+Any language works: see `examples/solvers/template_any_language` and
+[SOLVER_CONTRACT.md](../sdk/SOLVER_CONTRACT.md).

@@ -1,0 +1,7 @@
+{
+  "contract": "ares-lite-solver/1",
+  "name": "my-rust-solver",
+  "version": "1",
+  "command": ["python3", "solver.py"],
+  "timeout_seconds": 900
+}

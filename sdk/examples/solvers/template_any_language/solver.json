@@ -1,0 +1,7 @@
+{
+  "contract": "ares-lite-solver/1",
+  "name": "template",
+  "version": "1",
+  "command": ["python3", "solver.py"],
+  "timeout_seconds": 60
+}

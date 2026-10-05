@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ARES Miner</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#16181d;--mute:#5f6673;--line:#dfe3ea;--accent:#1f5fd6;--ok:#137a3a;--bad:#b42318;--warn:#8a5a00}
+@media (prefers-color-scheme:dark){:root{--bg:#111318;--card:#1a1d24;--ink:#e9ecf1;--mute:#9aa3b2;--line:#2b303a;--accent:#6ea2ff;--ok:#5fd38d;--bad:#ff8a80;--warn:#f0c46a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--card)}
+header h1{font-size:17px;margin:0}.badge{font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--warn);color:var(--warn);font-weight:600}
+main{max-width:1040px;margin:0 auto;padding:16px;display:grid;gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}input,select{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);min-width:0}
+input.grow{flex:1 1 320px}button{font:inherit;padding:8px 14px;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;padding:10px 22px}button:disabled{opacity:.5;cursor:default}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.stat .k{color:var(--mute);font-size:12px}.stat .v{font-size:18px;font-weight:600;word-break:break-all}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--line)}th{color:var(--mute);font-weight:500}
+.mute{color:var(--mute)}.ok{color:var(--ok)}.bad{color:var(--bad)}#log{max-height:240px;overflow:auto;font:12px/1.4 ui-monospace,Consolas,monospace;white-space:pre-wrap}
+details summary{cursor:pointer;font-weight:600}h2{font-size:14px;margin:0 0 10px}#msg{min-height:20px}
+</style>
+</head>
+<body>
+<header><h1>ARES Miner</h1><span class="badge">DEVNET / TEST-ONLY · SEASON ZERO POINTS-ONLY</span><span class="mute" id="who"></span></header>
+<main>
+  <div class="card">
+    <h2>1 · Wallet (public address only)</h2>
+    <div class="row"><input class="grow" id="wallet" placeholder="Solana devnet address, or path to a Solana CLI keypair file (only its public key is read)">
+      <button onclick="act('wallet',{value:val('wallet')})">Connect</button></div>
+    <div class="mute">ARES Miner never asks for, stores or sends a private key. Rewards are points only.</div>
+  </div>
+  <div class="card">
+    <h2>2 · Season</h2>
+    <div class="row"><input class="grow" id="server" placeholder="Operator URL, e.g. https://season-zero.example">
+      <label><input type="checkbox" id="onchain" checked> verify on Solana devnet</label>
+      <button onclick="act('join',{server:val('server'),verify_onchain:el('onchain').checked})">Join</button></div>
+  </div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <button class="primary" id="startbtn" onclick="act(running?'stop':'start',{})">START MINING</button>
+      <span id="msg" class="mute"></span>
+    </div>
+    <div class="grid" style="margin-top:12px">
+      <div class="stat"><div class="k">Season / epoch</div><div class="v" id="season">–</div></div>
+      <div class="stat"><div class="k">Phase</div><div class="v" id="phase">–</div></div>
+      <div class="stat"><div class="k">Local best (vs baseline)</div><div class="v" id="best">–</div></div>
+      <div class="stat"><div class="k">Rank</div><div class="v" id="rank">–</div></div>
+      <div class="stat"><div class="k">Iterations</div><div class="v" id="iter">0</div></div>
+      <div class="stat"><div class="k">Commits / revealed</div><div class="v" id="cr">0 / 0</div></div>
+      <div class="stat"><div class="k">Verification</div><div class="v" id="verify">–</div></div>
+      <div class="stat"><div class="k">Challenge</div><div class="v mute" id="challenge" style="font-size:12px">–</div></div>
+    </div>
+  </div>
+  <div class="card"><h2>History</h2>
+    <table><thead><tr><th>#</th><th>commit</th><th>practice score</th><th>fuel</th><th>revealed</th><th>solver</th></tr></thead><tbody id="subs"></tbody></table>
+  </div>
+  <div class="card"><details><summary>Advanced</summary>
+    <div class="row" style="margin-top:10px">
+      <label>Solver <input id="solver" size="34" title="builtin:starter, builtin:baseline, or a path to solver.json"></label>
+      <label>CPU workers <input id="workers" type="number" min="1" max="64" style="width:70px"></label>
+      <label><input type="checkbox" id="reveal_early"> reveal right after commit (not recommended)</label>
+      <label>Pool (metadata) <input id="pool" size="12"></label>
+      <label>RPC <input id="rpc" size="30"></label>
+      <button onclick="act('settings',{solver:val('solver'),workers:+val('workers')||1,reveal_early:el('reveal_early').checked,pool:val('pool'),rpc:val('rpc')})">Save</button>
+      <button onclick="act('reveal',{})">Reveal pending now</button>
+    </div>
+    <div class="mute" style="margin-top:6px">Custom solvers: see SOLVER_CONTRACT.md. GPU, remote and AI-agent workers plug in through the same solver contract.</div>
+    <h2 style="margin-top:12px">Log</h2><div id="log" class="mute"></div>
+  </details></div>
+</main>
+<script>
+const TOKEN="__TOKEN__";let running=false,editing=false;
+const el=id=>document.getElementById(id),val=id=>el(id).value.trim();
+document.addEventListener('focusin',()=>editing=true);document.addEventListener('focusout',()=>editing=false);
+async function call(method,path,body){const r=await fetch(path,{method,headers:{'X-ARES-Token':TOKEN,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});return r.json();}
+async function act(name,body){el('msg').textContent='…';const s=await call('POST','/api/'+name,body);render(s);if(s.error)el('msg').innerHTML='<span class="bad"></span>',el('msg').firstChild.textContent=s.error;}
+function txt(id,v){el(id).textContent=v}
+function render(s){if(!s)return;const c=s.config||{},m=s.miner||{};running=!!m.running;
+  if(!editing){for(const k of['solver','workers','pool','rpc'])if(c[k]!==undefined&&document.activeElement!==el(k))el(k).value=c[k];el('reveal_early').checked=!!c.reveal_early;
+    if(c.address&&!el('wallet').value)el('wallet').value=c.address;if(c.server&&!el('server').value)el('server').value=c.server;}
+  txt('who',c.address?('wallet '+c.address.slice(0,6)+'…'+c.address.slice(-4)):'no wallet');
+  el('startbtn').textContent=running?'STOP':'START MINING';el('startbtn').disabled=!(s.joined&&c.address);
+  if(s.message)txt('msg',s.message);
+  txt('season',m.season?(m.season+' · '+m.epoch):'–');txt('phase',m.phase||'–');
+  const b=m.best_seen;txt('best',b===undefined||b===null?'–':((b/100).toFixed(2)+' %'));
+  txt('rank',m.rank?('#'+m.rank):'–');txt('iter',m.iteration||0);
+  const subs=m.submissions||[];txt('cr',subs.filter(x=>x.commit_seq!==null).length+' / '+subs.filter(x=>x.revealed).length);
+  const v=m.verification;el('verify').innerHTML=v?(v.all_ok?'<span class="ok">verified ✓</span>':'<span class="bad">MISMATCH</span>'):'–';
+  txt('challenge',m.challenge_id?m.challenge_id.slice(0,24)+'…':'–');
+  const tb=el('subs');tb.innerHTML='';for(const x of subs.slice().reverse()){const tr=document.createElement('tr');
+    for(const cell of[x.id,x.commit_seq??'pending',x.practice_score_bps==null?'–':(x.practice_score_bps/100).toFixed(2)+' %',x.practice_fuel==null?'–':x.practice_fuel.toLocaleString('en-US'),x.revealed?'yes':'not yet',x.solver||'']){const td=document.createElement('td');td.textContent=cell;tr.appendChild(td);}tb.appendChild(tr);}
+  el('log').textContent=(m.events||[]).slice(-80).map(e=>new Date(e.t*1000).toISOString().slice(11,19)+' ['+e.kind+'] '+e.message).join('\n');
+  if(m.error)txt('msg',m.error);}
+async function tick(){try{render(await call('GET','/api/state'))}catch(e){}}
+tick();setInterval(tick,2000);
+</script>
+</body>
+</html>

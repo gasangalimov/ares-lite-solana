@@ -1,0 +1,36 @@
+{
+  "adjustment_epoch": 0,
+  "baseline_source_sha256": "d84b0eed9cded8a2ffbaf1758224185ed9efe34ef3ef2e3a2a3a97defb515317",
+  "chain_id": "ares-lite-solana-devnet",
+  "challenge_beacon_slot": 507699088,
+  "challenge_profile": "lite-L1",
+  "difficulty_index": 2,
+  "financial_value": false,
+  "name": "Season Zero (frozen economics run)",
+  "network": "solana-devnet",
+  "notes": [],
+  "protocol_version": 1,
+  "receipt_signer": "50273ab9c6026e8254326d7b21dfbc1e1cb3080984cc5a30297cca7a2f483a24",
+  "reference_features": [],
+  "reward_beacon_delay_slots": 20,
+  "reward_policy": "winner_takes_epoch_v0",
+  "rewards": {
+    "benchmark_cases": 16,
+    "improvement_threshold_bps": 100,
+    "season_cap": 100000000,
+    "seed_count": 2
+  },
+  "scaled": [
+    24,
+    32,
+    130,
+    32,
+    8,
+    8,
+    5,
+    30000000,
+    50000000
+  ],
+  "schema": "ARES-LITE/SEASON-MANIFEST/v0",
+  "season_id": 30
+}

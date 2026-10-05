@@ -1,0 +1,126 @@
+{
+ "devnet_v1_addresses": {
+  "config": "FEPcZTbJMB4Xcr8uYBRkTtJR1BeouwgzKyXnx4XrPfhq",
+  "epoch_7": "HPxh8PNPhcDaUR2MK35SNUYcQAK6EWW3umYYdLWoaKcn",
+  "founder_vault": "9nU3yjynF8LtYDqqSAuskCNwWqJUY74wkaY55eRUrBu3",
+  "mining_vault": "5kcs73EFbVNWnrcAFiRJVU1urx6GRxS1s1AxEKLHTWsX"
+ },
+ "encoding": {
+  "canonical": {
+   "bytes_3": "430001ff",
+   "bytes_empty": "40",
+   "list_empty": "80",
+   "list_nested": "8300820141026178",
+   "negint_-1": "20",
+   "text_ascii": "6a434f44452d53594e5448",
+   "uint_0": "00",
+   "uint_23": "17",
+   "uint_24": "1818",
+   "uint_255": "18ff",
+   "uint_256": "190100",
+   "uint_2^32": "1b0000000100000000",
+   "uint_2^64-1": "1bffffffffffffffff",
+   "uint_65536": "1a00010000"
+  },
+  "must_reject": {
+   "bytes_len_in_1_byte": "rejected: CanonicalDecodingError: CBOR argument does not use its shortest form",
+   "float_half": "rejected: CanonicalDecodingError: CBOR major type 7 is forbidden by the ARES profile",
+   "indefinite_bytes": "rejected: CanonicalDecodingError: indefinite-length values are forbidden",
+   "map": "rejected: CanonicalDecodingError: CBOR major type 5 is forbidden by the ARES profile",
+   "trailing_byte": "rejected: CanonicalDecodingError: trailing bytes follow the canonical value",
+   "truncated_bytes": "rejected: CanonicalDecodingError: byte or text string is truncated",
+   "uint_0_in_2_bytes": "rejected: CanonicalDecodingError: CBOR argument does not use its shortest form",
+   "uint_23_in_1_byte": "rejected: CanonicalDecodingError: CBOR argument does not use its shortest form"
+  }
+ },
+ "format": "ares-lite-conformance/1",
+ "hashing": {
+  "mining_key_ref(ADDRESS_A)": "20b50a92c1d46436451ad2497c1a588e281962f50e50d8b414444e9ad4984ec7"
+ },
+ "inputs": {
+  "ADDRESS_A": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+  "ADDRESS_B": "2122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40",
+  "SALT": "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a",
+  "beacon_sha256": "7654701962de6e3332026cc31ff0ac18eee7a3b17fc016e5ac43cbecf1cb250d",
+  "manifest_sha256": "564740927552d0c26307f2c2b3d8c4e9c3da49308238bf8ff671a41435c6cc5c",
+  "modules_sha256": {
+   "baseline": "c16b0b97af51eb207b00005f8561dda1e66b19d6cffeb4087ae90c82d013671f",
+   "memo_bound": "16ae120c9030ddd5e650a42dbdab16a795ee2294dcc2227acdce9a33f52e50dd"
+  }
+ },
+ "merkle": {
+  "leaves": [
+   "4501f7974377023fc450e2a64494a756b9aa8ebbf3bdf8add7717d6fc1fe5cf8",
+   "c006f1bc86daad423f3d752c879aeb87f9867ae8971b3b943cd1341e5307941a",
+   "d9fae18e7a100b46d32844d537fdc4a1665515eb978e3ec3ce4a40dff0d13a61"
+  ],
+  "proof_0": [
+   "c006f1bc86daad423f3d752c879aeb87f9867ae8971b3b943cd1341e5307941a",
+   "d9fae18e7a100b46d32844d537fdc4a1665515eb978e3ec3ce4a40dff0d13a61"
+  ],
+  "root": "ffb0c3ffd3423f31157720ef88e266eee8c58eb252ffb187a3efddca420b1bff"
+ },
+ "modules": {
+  "baseline": {
+   "commitment(ADDRESS_A,SALT)": "66adda19945685af49c0538b96a641f2f18db8228a1c584bf1f5df4d6a691df0",
+   "commitment(ADDRESS_B,SALT)": "090f96c835ad49bc0d059b1028d8e04b4b01a296ea7e0253a39ba164a7811edb",
+   "log_head_after_commit_and_reveal": "5257f5da8a91b7da232fc1d1a6f438d69560c8846e0874012240b501956b065c",
+   "module_sha256": "c16b0b97af51eb207b00005f8561dda1e66b19d6cffeb4087ae90c82d013671f",
+   "practice": {
+    "benchmark_fuel": 521230,
+    "cases": 4,
+    "evaluation_digest": "b10db97f6773801a34f09079ae9aa1eee4a458419a2ccef4ded5fe117bb8a2d6",
+    "reason": "OK",
+    "valid": true
+   },
+   "reveal_len": 3981,
+   "reveal_sha256": "80dba02b7e850cf03197fc219a90e01558fa5c45c3dc95197d4e9fe969f994da",
+   "solution_sha256": "8c0dd837a7496421f503baab30734b636e36e239cd96029b26a0dbf31b327488"
+  },
+  "memo_bound": {
+   "commitment(ADDRESS_A,SALT)": "7671982c39f16a04557b06f6a96ab3049651fb01809e7905ca8802278298691e",
+   "commitment(ADDRESS_B,SALT)": "f43b270f716ca9cbb8523f5d6555e36ed7a10fc23b692c2b8286499642c06845",
+   "log_head_after_commit_and_reveal": "882c0a353d83e453ad06a78273cd87809e6be091bd0c667a948194617c03d589",
+   "module_sha256": "16ae120c9030ddd5e650a42dbdab16a795ee2294dcc2227acdce9a33f52e50dd",
+   "practice": {
+    "benchmark_fuel": 852034,
+    "cases": 4,
+    "evaluation_digest": "bac955062520eb1bb88ebad8fe1a8c53a8038b80a14df7a30b5466a50b774db6",
+    "reason": "OK",
+    "valid": true
+   },
+   "reveal_len": 4584,
+   "reveal_sha256": "9d11648d69543c614bc376063bd58f89f0798f968861baef18f965b5cf634a63",
+   "solution_sha256": "942fe379a77e8f7737b6ef344dc17a9f28a1be4652d190702e686e838cff07f0"
+  }
+ },
+ "negative": {
+  "changed_address_changes_commitment": true,
+  "changed_epoch_changes_commitment": true,
+  "double_reveal": "rejected: SubmissionRejected: commit already revealed",
+  "duplicate_commitment": "rejected: SubmissionRejected: duplicate commitment",
+  "late_commit_after_close": "rejected: SubmissionRejected: commits are not open",
+  "late_reveal_after_close": "rejected: SubmissionRejected: reveals are closed",
+  "malformed_reveal_truncated": "rejected: SubmissionRejected: malformed reveal: byte or text string is truncated",
+  "non_canonical_reveal_padding": "rejected: SubmissionRejected: malformed reveal: trailing bytes follow the canonical value",
+  "reveal_for_another_challenge": "rejected: SubmissionRejected: reveal is bound to another season or challenge",
+  "reveal_replayed_from_another_epoch": "rejected: SubmissionRejected: reveal is bound to another season or challenge",
+  "reveal_with_changed_reward_address": "rejected: SubmissionRejected: reveal does not open the commitment",
+  "reveal_with_changed_salt": "rejected: SubmissionRejected: reveal does not open the commitment",
+  "reveal_with_changed_solution_byte": "rejected: SubmissionRejected: reveal does not open the commitment",
+  "short_commitment": "rejected: SubmissionRejected: commitment must be 32 bytes",
+  "short_reward_address": "rejected: SubmissionRejected: reward address must be 32 bytes",
+  "wrong_commit_seq": "rejected: SubmissionRejected: unknown commit"
+ },
+ "score_table_digest": "0d97ae3210eaa841dd322efac0365f30345ec1a5013bceac660adea4f0d11445",
+ "season": {
+  "challenge_id": "09d78fae43c4de1056b85e14384d3dfe889193988ccca00b087451f42fc20908",
+  "family_config_ref": "ad34bed9b5001aab8b9d0e5f2c784eea8625af281d6bf66e42d12deb8edb76ed",
+  "manifest_hash": "8528324f43af89073ee23068471a1d0dcff97d32edb69342b2a81915cc66a955",
+  "practice_seed_0": "a798f825a00914e5216022fbcebb17214b3cbb76fadbe9dcaac24eeb6bed4304",
+  "practice_seed_1": "6e26dc2c2130d51a6231e508575a1193e7236d8078902e6c25c63849210b7ff1",
+  "season_id": 30,
+  "season_rs_sha256": "845fe7081ddb938d07f2da584630045f46ba0ca933d8e8f96966a0f9c95f199b",
+  "ticket_id": "708a310a948a989a43abda4350b81a85db49cdd5aac043ba425292a132581cb8"
+ }
+}

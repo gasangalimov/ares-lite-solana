@@ -1,118 +1,80 @@
-# ARES Lite on Solana
+# ARES Lite — competitive algorithm mining on Solana (devnet)
 
-**ARES Lite — competitive algorithm mining settlement layer on Solana.**
-
-Participants compete with deterministic, verifiable algorithm submissions
-(Rust → WebAssembly). The best solver of each competition epoch is paid from
-a fixed reward reserve by a native Solana program. This repository contains
-the **settlement layer**: the SPL-token program, its tests, the client,
-supply/tokenomics tooling and the devnet release tooling.
-
-> **Current release: DEVNET / TEST-ONLY.**
+> **DEVNET / TEST-ONLY · NO MAINNET · NO TOKEN SALE · NO AIRDROP PROMISE · SEASON ZERO IS POINTS-ONLY**
 >
-> - No mainnet deployment yet.
-> - No token sale.
-> - No airdrop promised.
-> - Devnet/test software only.
->
-> This page makes no statement about price, returns or value.
+> Season Zero points have no monetary value and will not be converted into anything.
+> Nothing in this repository is an offer, an investment or a statement about price.
 
-## Season Zero: Build a better algorithm. Beat the baseline.
+## Build a better algorithm. Beat the baseline.
 
-Points only: no ARES rewards, no airdrop promise, no retrospective token
-allocation, no mainnet. Any GPUs, CPUs, AI agents, API budgets, teams and
-mining pools are allowed: **equality of rules, not equality of resources**.
-Identical copies in many wallets resolve to one result. Rules:
-[`docs/SEASON_ZERO_RULES.md`](docs/SEASON_ZERO_RULES.md) · how to take part:
-[`docs/PARTICIPATE.md`](docs/PARTICIPATE.md) · leaderboard:
-[`docs/LEADERBOARD.md`](docs/LEADERBOARD.md).
+ARES Lite is a competition for **algorithms**. Each epoch has one published
+challenge: a routing problem compiled into a small WebAssembly program. You
+write a **solver** that produces that program. It must be **correct** on
+every hidden test. Among correct programs, the one that runs with the **least
+metered work (fuel)** wins. Anyone can reproduce every score from public files.
 
-## Documentation
+You may use any tools you like: your own head, Claude, Codex or other AI
+agents, any amount of compute, a team or a pool. More useful work gives a
+better solver, and a better solver gives a better rank. Copying one solver into
+many wallets adds nothing, because identical results go to the earliest commit.
 
-| | |
-|---|---|
-| [Quick start](docs/QUICKSTART.md) | build, test, local validator and devnet |
-| [Architecture](docs/ARCHITECTURE.md) | components, trust per layer |
-| [Security model](docs/SECURITY_MODEL.md) | what nobody can do, remaining powers and their bounds, multisig |
-| [Tokenomics](docs/TOKENOMICS_LITE_V0.md) | fixed supply, halving schedule, burn |
-| [Season Zero rules](docs/SEASON_ZERO_RULES.md) · [Participate](docs/PARTICIPATE.md) · [Leaderboard](docs/LEADERBOARD.md) | points-only competition |
-| [Devnet evidence](docs/DEVNET_EVIDENCE.md) | every address, signature and negative-test code |
-| [FAQ](docs/FAQ.md) | |
+This does not claim that Season Zero proves AI-driven algorithmic discovery.
+It measures one thing: who can make this solver better, and whether people
+come back to improve it.
 
-## Token model (ARES, program v3)
+## Start in three steps
 
-| | |
-|---|---|
-| Token | ARES (classic SPL Token, 6 decimals) |
-| Supply | **1,000,000,000 fixed**, minted once in one atomic genesis transaction |
-| Creator allocation | **10%** (100,000,000) to an explicit founder wallet, disclosed on the supply page, no vesting |
-| Mining / community reserve | **90%** (900,000,000) in a program-owned vault (PDA), used only for epoch rewards |
-| Future mint | **none**: the mint authority is revoked inside genesis |
-| Freeze authority | **none** |
-| Reward release | **5-year distribution halving**: era *n* releases 450,000,000 / 2ⁿ ARES linearly; one competition epoch can pay at most what the schedule unlocked since the previous settlement (≤ 7 days of release) |
-| Burn | **10% of every paid challenge bounty** is burned with SPL Burn; 90% escrowed for the solver; no transfer tax, no admin burn |
+1. **Install** (Python 3.10+; Rust is optional, see below):
+   ```
+   git clone https://github.com/gasangalimov/ares-lite-solana
+   cd ares-lite-solana/sdk && pip install .
+   ```
+2. **Open ARES Miner:** `ares-miner`. A local window opens.
+3. **Connect** your devnet wallet's **public address**, **Join** the season's
+   operator URL, and press **START MINING**.
 
-## What the program enforces
+ARES Miner then:
+- runs your solver (the built-in starter by default);
+- scores every candidate locally;
+- **commits** each improvement while commits are open;
+- **reveals** automatically when commits close;
+- **verifies** the published result independently, including on Solana devnet.
 
-- **Genesis.** One atomic transaction mints exactly 1B. It rejects pre-existing supply, a freeze authority, decimals ≠ 6 or a wrong authority. The post-conditions are checked on-chain.
-- **Vault.** Tokens leave the reserve only through `claim`, against a published epoch Merkle root (SHA-256, domain-separated leaves). There is one receipt PDA per (season, claimant), and the destination must be owned by the claimant. No admin, founder or arbitrary withdrawal path exists.
-- **Epoch cap.**
-  - `close_season` pins the off-chain result log head and fixes the epoch cap.
-  - `publish` requires the same head, `total ≤ epoch cap` and `committed ≤ unlocked(now)`.
-- **Public verification window.** Claims open only after `claim_delay`. Within it, `cancel_root` can withdraw the latest root if nothing has been claimed.
-- **Bounties.** `fund_bounty` burns 10% and escrows 90%; `award_bounty` pays once.
+You never give it a private key. Mining needs only your public address,
+because the commitment binds it.
 
-The full design, authorities and threat analysis are in [`docs/`](docs/).
+To write your own solver, follow [docs/QUICKSTART.md](docs/QUICKSTART.md) and
+[sdk/SOLVER_CONTRACT.md](sdk/SOLVER_CONTRACT.md). It takes about 10 minutes,
+and an AI agent can do it for you.
 
-## Layout
+## What is in this repository
 
 | Path | What |
 |---|---|
-| `solana/program/` | Native Solana program (Rust, `solana-program` 2.3, classic SPL Token) — `Cargo.toml`, `src/lib.rs` |
-| `solana/tests-svm/` | LiteSVM integration tests (genesis exactness, mint-death, halving boundaries, vault bypass attempts, burn, epoch cap, verification window) |
-| `ares_lite/` | Python client: transactions/PDAs/Merkle (`solana_client.py`, `merkle.py`), `supply.py` (fixed-supply release gate, mint-death test, burn simulation), `tokenomics.py` (schedule mirror) |
-| `cli/ares_lite_chain.py` | Settlement CLI: `chain-genesis`, `verify-fixed-supply`, `supply [--html]`, `epoch-budget`, `bounty-fund`, `bounty-award` |
-| `release/release.sh` | One release script for localnet / devnet (mainnet refused without an explicit owner GO phrase) |
-| `release/budget.py` | Exact devnet SOL budget from live rent (deploy ≈ 0.684 SOL, full run ≈ 0.70 SOL) |
-| `tests/test_settlement.py` | Python tests: supply constants vs program source, halving, burn, epoch cap, account layouts |
+| `sdk/` | **Public participant SDK + ARES Miner** (`pip install ./sdk`). It holds the canonical encodings ([SPEC.md](sdk/SPEC.md)), the challenge generator and verifier, commit/reveal, local scoring, the solver contract, conformance vectors, the participant CLI `ares-lite`, the miner `ares-miner` and the reference operator server. It needs no private code. |
+| `solana/program` | The on-chain program (v4, frozen economics) deployed on devnet |
+| `solana/tests-svm` | LiteSVM tests: golden vectors, invariants, property tests |
+| `docs/` | How it works, rules, leaderboard, security model, economics, devnet evidence, FAQ |
 
-## Build and test
+## Devnet deployment (v4, frozen economics)
 
-```bash
-# program (Solana platform tools / cargo-build-sbf)
-cd solana/program && cargo build-sbf -- --locked && cargo test
-# on-chain behaviour in LiteSVM (Rust 1.97.1, pinned in rust-toolchain.toml)
-cd solana/tests-svm && cargo test --release
-# Python tooling (Python >= 3.12; pip install httpx pycryptodome)
-python3 -m unittest discover -s tests
-# exact devnet budget (read-only)
-python3 release/budget.py --rpc https://api.devnet.solana.com
+| | |
+|---|---|
+| Program | `9Tzp3MQFQR9d2VRfreJJgtq3cdYEdaDujRMHVMhpxBoV` |
+| Mint (100,000,000 fixed; mint + freeze authority None) | `BcdSq76FgstSMAyJgYJ4wx6LvBebw5NCReKRwQ6UzfTV` |
+| Founder vesting vault (10M; 1-year cliff, linear to year 5) | `9nU3yjynF8LtYDqqSAuskCNwWqJUY74wkaY55eRUrBu3` |
+| Mining vault (90M) | `5kcs73EFbVNWnrcAFiRJVU1urx6GRxS1s1AxEKLHTWsX` |
+| Upgrade authority / admin | Squads v4 2-of-3 multisig vaults (devnet) |
+
+See [docs/DEVNET_EVIDENCE.md](docs/DEVNET_EVIDENCE.md) and [docs/ECONOMICS.md](docs/ECONOMICS.md).
+
+## Verify everything yourself
+
+```
+cd sdk
+python -m ares_lite.conformance                 # reproduce the conformance vectors byte for byte
+python -m unittest discover -s tests -t .       # SDK tests (local end-to-end needs Rust)
+ares-lite --dir ~/ares-lite-season verify       # after a season: recompute the result + on-chain checks
 ```
 
-Reviewed program binary (v3): SHA-256
-`eeac5f03b6713184b209be81a23a8b14916a6238e83f65e6df829d3f408858e7`.
-
-## Devnet release
-
-```bash
-CLUSTER=localnet FOUNDER_WALLET=<base58> release/release.sh   # local validator rehearsal
-CLUSTER=devnet   FOUNDER_WALLET=<base58> release/release.sh   # devnet
-```
-
-Keys are created under `~/.config/ares-lite/<cluster>`, never inside the
-repository. Mainnet requires a separate owner decision and is refused by
-default.
-
-## Season Zero
-
-The first public season is **points only** (no token, no airdrop): see
-[`docs/SEASON_ZERO_PUBLIC.md`](docs/SEASON_ZERO_PUBLIC.md). The competition
-service (challenge generation, deterministic WASM verification,
-commit/reveal log, finalize) runs off-chain. This repository contains its
-Solana settlement layer.
-
-## Trust model (honest)
-
-- On the devnet deployment, the upgrade authority is a **2-of-3 Squads v4 multisig with a time lock**, and the protocol admin is a separate **2-of-3 multisig**. The old single deployer key is rejected on-chain ([`docs/DEVNET_EVIDENCE.md`](docs/DEVNET_EVIDENCE.md)). The program is not immutable (`--final` was not executed).
-- The program cannot run the WASM verifier, so a wrong epoch root is bounded by one epoch cap and detectable during the verification window, not prevented on-chain ([`docs/DETERMINISTIC_FINALIZE.md`](docs/DETERMINISTIC_FINALIZE.md)).
-- There is no external audit yet.
+Security: [SECURITY.md](SECURITY.md), [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md). License: MIT.

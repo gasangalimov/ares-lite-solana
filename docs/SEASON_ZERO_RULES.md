@@ -1,71 +1,67 @@
-# Season Zero — rules
+# Season Zero rules
 
 ## Build a better algorithm. Beat the baseline.
 
-> **Current release: DEVNET / TEST-ONLY.** Season Zero is **points only**. It has:
-> - **no ARES rewards**;
-> - **no airdrop promise**;
-> - **no retrospective token allocation**;
-> - **no mainnet**.
+> **DEVNET / TEST-ONLY.** Season Zero is **POINTS-ONLY**:
+> - no ARES rewards;
+> - no airdrop promise;
+> - no retrospective token allocation;
+> - no mainnet.
 >
 > Points have no monetary value and will not be converted into anything.
-> Nothing here is an offer, an investment, or a statement about price.
+> Every Season Zero manifest uses the reward policy `season_zero_points_v0`,
+> which allocates **zero tokens** by construction. The policy is part of the
+> manifest hash pinned on Solana, so you can check it before you join.
 
 ## The task
 
-Write a solver for the season's GRAPH-ROUTE challenge as a Rust → WebAssembly
-module.
-- **Correctness is all-or-nothing.** A solver that is wrong on any test is invalid.
-- **Score.** Among valid solvers, the score is the deterministic execution fuel (instructions) on hidden benchmark cases. These cases are fixed only after submissions close. **Lower is better.**
-- **Baseline.** You must beat the season baseline by at least the published threshold (1% in the reference profile).
+Produce a WebAssembly solver (ARES-WASM-V0 module) for the epoch's
+GRAPH-ROUTE challenge.
+- **Correctness is all-or-nothing:** one wrong answer on any test makes the module invalid.
+- **Score** is the metered fuel on hidden benchmark cases fixed only after
+  submissions close. Lower fuel is better; it is shown as basis points of
+  improvement over the baseline.
+- **Threshold:** a submission counts as beating the baseline only with at
+  least the manifest's improvement threshold (1% in the reference profile).
 
 ## Equality of rules, not equality of resources
 
 All of these are allowed, without caps:
-- any number of GPUs and CPUs;
-- Claude, Codex or any other AI agents, and any API budget;
+- any amount of compute;
+- any AI agents (Claude, Codex, others) and any API budget;
 - teams, companies and labs;
-- your own algorithms and tools;
-- **mining pools**: submit under the pool's address and split as you like.
+- pools, by submitting under the pool's address.
 
-**More resources → stronger solver → more points.** That is legitimate and
-intended. Nobody is capped for being well-resourced.
+More useful work gives a better solver and a better rank.
 
-What does **not** work:
-- **Identical copies.** 1 identical solver × 1,000 wallets creates *one* result, not 1,000. Exact ties go to the earliest commit, so copies and re-submissions of the same solver earn nothing.
-- **Identity games.** Identity does not matter at all: no KYC, no one-person-one-wallet. The only rule is that extra wallets add nothing without extra useful work.
+These do not help:
+- **Identical copies.** One solver in 1,000 wallets is one result. Equal
+  scores rank by the earliest commit, so copies and re-submissions earn nothing.
+- **Identities.** Identity is irrelevant: there is no KYC and no
+  one-person-one-wallet rule. Extra wallets help only with genuinely better work.
 
-## Mechanics
+## Phases of an epoch
 
-These are fixed for Season Zero and identical to the frozen devnet baseline.
+1. **OPEN:** commit as often as you like. Each commit binds module, address, epoch and salt.
+2. **CLOSE_COMMITS:** reveal your commitments. ARES Miner does this automatically.
+3. **CLOSE_REVEALS:** the operator pins the closed receipt-log head on Solana devnet, then scores deterministically with seeds from a post-close beacon.
+4. **Published:** the score table digest is pinned on-chain (total 0 tokens). Anyone can recompute and verify it during the public verification window.
 
-1. **Commit.** Submit a hash commitment that binds your solver and your reward address. The order is a hash-chained receipt log, and you get a signed receipt.
-2. **Reveal** your module after commits close.
-3. **Close.** The operator pins the receipt-log head on-chain (Solana devnet) before any scoring.
-4. **Score** deterministically on hidden cases derived from a post-close beacon. Anyone can reproduce the score table and the result from the public files.
-5. **Epoch result (`winner_takes_epoch_v0`).** The best valid solver that beats the baseline by the threshold takes the epoch's points. Ties go to the earliest commit.
-6. **Verification window.** The result is published on-chain with its digest. Anyone can re-run the verification before it becomes final.
+## Points and ranking
 
-## Leaderboard
-
-See [LEADERBOARD.md](LEADERBOARD.md). The live board during the season uses
-public practice cases and is for feedback only. The final ranking uses the
-hidden post-close cases.
+The final ranking is by best final score per reward address, with ties going
+to the earliest commit. Points are the ranking itself. The leaderboard shows
+rank, best score in bps, submissions and history
+([LEADERBOARD.md](LEADERBOARD.md)).
 
 ## What we measure
 
-The headline metric is the **return iteration rate**. Among participants
-whose submissions include a first **valid** one, we count how many made a
-**2nd**, a **3rd** and a **5th** submission. Registrations and traffic are
-not success metrics.
+The headline metric is the **return iteration rate**: of the participants whose
+submissions include a first **valid** one, how many made a 2nd, a 3rd and a 5th+
+submission. Wallet counts and traffic are not success metrics.
 
-We also publish:
-- the best improvement over the baseline;
-- pool participation and the AI agents participants chose to declare (optional, never scored);
-- the operator's evaluation cost.
+## Fair play
 
-## Fair-play notes
-
-- **No limits** on submissions, compute, agents or wallets.
-- **Infrastructure attacks.** Attacking the operator's infrastructure (DoS, etc.) is not participation and is out of scope.
-- **Known limitation.** The challenge profile is provisional. Which public solver variant is best changes from instance to instance, and Season Zero tests the competition loop, not a final difficulty.
+- There are no limits on submissions, compute, agents or wallets.
+- Attacking the operator's infrastructure (DoS etc.) is not participation and is out of scope.
+- **Known limitation:** the challenge profile is provisional. Season Zero tests the competition loop, not a final difficulty.

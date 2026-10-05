@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ares-lite-sdk"
+version = "0.1.0"
+description = "ARES Lite participant SDK + ARES Miner (DEVNET / TEST-ONLY; Season Zero points only)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = ["httpx>=0.24", "pycryptodome>=3.18"]
+
+[project.scripts]
+ares-lite = "ares_lite.cli:main"
+ares-miner = "ares_lite.miner.app:main"
+
+[tool.setuptools.packages.find]
+include = ["ares_lite*"]
+
+[tool.setuptools.package-data]
+ares_lite = ["vectors/*.json", "vectors/modules/*.wasm", "miner/ui.html", "solvers/graph_route/*", "solvers/graph_route/src/*", "GENERATED.txt"]

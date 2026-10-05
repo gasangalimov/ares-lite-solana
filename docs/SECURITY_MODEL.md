@@ -1,54 +1,41 @@
 # Security model
 
-> **Current release: DEVNET / TEST-ONLY.** There is no external audit yet.
+> DEVNET / TEST-ONLY. There is no external audit yet.
 
-## What nobody can do (enforced, not promised)
+## On-chain (program v4, frozen economics)
 
-- **Mint more ARES.** The SPL mint authority is `None` (revoked inside genesis). SPL Token enforces this, independent of this program.
-- **Freeze anyone's tokens.** The freeze authority was never set.
-- **Withdraw from the reward vault** except through `claim` against a published, capped epoch root. The program has no withdraw, recovery, sweep, pause or emergency instruction.
-- **Burn other people's tokens.** SPL Burn requires the owner's signature. The bounty burn is always on the funder's own tokens.
-- **Claim twice, claim for someone else, or claim before the verification window.** One receipt PDA exists per (season, claimant), the destination must be owned by the claimant, and the claim must come after `claim_open_ts`.
+These are enforced, not promised:
+- **No minting:** the SPL mint authority is `None`, so supply is 100,000,000 forever. There is no freeze authority.
+- **The mining vault pays out only through `claim`,** against a FINAL epoch result, capped by `cap(e) = floor(A × 379,735 / 10⁹)`. No withdraw, sweep or admin path exists.
+- **The founder vesting vault pays out only through `release_vested`,** signed by the founder beneficiary, up to the vested amount (1-year cliff, then linear to year 5). There is no admin path.
+- **One correction per epoch,** and only inside the verification window. The original result stays on-chain, and claimable or claimed results cannot be withdrawn.
+- Upgrade authority and admin are **2-of-3 Squads multisigs** (devnet). The old deployer key is rejected.
 
-## Powers that remain, and how they are bounded
+Season Zero publishes `total = 0`, so no tokens move. The on-chain record
+holds the manifest hash, the closed log head, and the score digest and root.
 
-Era 0: the maximum epoch cap is 1,724,846 ARES (7 days of release), and the release rate is 246,406.57 ARES/day.
+## Operator (off-chain)
 
-| Power | Holder (devnet deployment) | Worst case if compromised | Bound / mitigation |
-|---|---|---|---|
-| Program upgrade | **2-of-3 Squads v4 multisig** with a time lock | Replace the code and move the remaining reserve (≤ 900M) | Threshold of 2 independent signers; the time lock gives honest members time to cancel; no single key |
-| `set_admin` | **2-of-3 admin multisig** | Hand the admin powers to someone else | Threshold |
-| `publish` (epoch root) | admin multisig | Pay one epoch's amount to a wrong address | ≤ the on-chain epoch cap per settlement; the input log is pinned before scoring; the result digest is on-chain; anyone can re-run the verification during the claim delay; `cancel_root` exists before claims open |
-| `close_season`, `cancel_root`, `create_season` | admin multisig | Delay or censor an epoch | No theft possible: amounts are program-computed, and cancel is limited to the latest unclaimed root inside the window |
-| `award_bounty` | admin multisig | Misdirect a funded bounty escrow | ≤ the escrowed bounty amounts |
-| Submission ordering, operator server | operator | Reorder, omit or see reveals early | Signed, hash-chained receipts make equivocation provable; omission is visible to the affected participant |
+The operator runs the receipt log and scoring. It cannot:
+- change the challenge, which is recomputed from the manifest plus a Solana beacon;
+- change your submission, because the commitment binds the module, address, epoch and salt;
+- silently drop or reorder you, because your signed receipt and the on-chain log head would prove it;
+- fake scores, because anyone recomputes them (`ares-lite verify`).
 
-**Not removable by on-chain checks today.** Solana cannot run the WASM
-verifier, so a wrong root is *detected* by public re-computation, not
-*prevented*. For any value-bearing deployment this requires:
-- an admin multisig;
-- a claim delay of 72 h or more;
-- at least one independent watcher.
+It *can* delay or censor (refuse service). Your receipts prove it if it does.
+Correctness of a published result is **detected** by public recomputation
+during the verification window, not **prevented** on-chain.
 
-## Multisig rehearsal (devnet)
+## Participant SDK and ARES Miner
 
-Upgrade authority and admin were moved from a single deployer key to two
-separate 2-of-3 Squads v4 multisigs. On devnet, these were then shown:
-
-| Attempt | Outcome |
-|---|---|
-| Old key upgrades | rejected |
-| Non-member approves | rejected |
-| 1-of-3 executes | rejected |
-| 2-of-3 executes before the time lock | rejected |
-| 2-of-3 after the time lock performs a same-bytes upgrade | succeeded; the deployed bytes re-hash to the reviewed binary |
-| Old key performs an admin action | rejected |
-| 2-of-3 performs an admin action | succeeded |
-
-Signatures: [DEVNET_EVIDENCE.md](DEVNET_EVIDENCE.md).
-
-The program is **not** immutable (`--final` was not executed). Making it immutable is a separate, later decision.
+- **No key custody.** Mining needs only your PUBLIC address. Given a Solana CLI keypair file, the Miner reads only its public half; it never stores the secret or the file path, and never sends either anywhere.
+- **Salt secrecy.** Each commitment's salt is written to your season directory (`participant.json`, mode 600) before anything is sent. It leaves your machine only in your reveal, after commits close.
+- **Untrusted operator data.** Downloads are size-limited. The challenge, `season.rs` and the manifest hash on Solana are checked at join; the reward beacon and the result are checked at verify.
+- **Untrusted solvers.** Solvers run without a shell, with a timeout and a minimal environment, in a fresh directory. Their output must be a regular file inside that directory (no `..`, no symlinks) of at most 131,072 bytes. The module is re-encoded and run only inside the deterministic verifier (no host calls). Claimed scores are ignored.
+- **Local app.** The Miner window listens on 127.0.0.1 only and requires a per-launch random token. `Host` and `Origin` checks block DNS rebinding and cross-site requests.
+- **No telemetry, no auto-update.** The Miner talks only to the operator URL you join and to the Solana RPC you choose.
+- **RPC trust.** The on-chain checks trust the RPC endpoint you configure (default `api.devnet.solana.com`). Use your own RPC if you need independence from it.
 
 ## Reporting
 
-Report vulnerabilities privately through GitHub (Security → Report a vulnerability).
+Report privately through GitHub (Security → Report a vulnerability).

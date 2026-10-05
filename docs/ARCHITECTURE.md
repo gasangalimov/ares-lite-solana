@@ -1,37 +1,25 @@
 # Architecture
 
 ```
-            participants (any hardware, any AI agents, pools)
-                 │  1. commit(hash) ──► signed receipt
-                 │  2. reveal(module)
-                 ▼
-   ┌──────────────────────────────┐        hash-chained receipt log (public)
-   │ competition service (off-chain)│ ───────────────────────────────────┐
-   │  • challenge from slot beacon  │                                      │
-   │  • deterministic WASM verifier │   3. close: pin log head ──────────┐ │
-   │  • fuel scoring on hidden cases│   5. publish root + digest ──────┐ │ │
-   └──────────────────────────────┘                                   │ │ │
-                 │ 4. finalize (pure function of public inputs;       ▼ ▼ │
-                 │    anyone can re-run it)              ┌───────────────────────────┐
-                 ▼                                       │ Solana program (this repo)│
-          results.json + Merkle root                     │  config / seasons PDAs    │
-                                                         │  epoch cap = unlocked     │
-   ┌────────────────────────┐   claim(proof) ──────────► │  since last settlement    │
-   │ winner wallet / pool   │ ◄──── ARES from vault ──── │  reward vault PDA (900M)  │
-   └────────────────────────┘    after verification      │  bounty: 10% SPL burn     │
-                                 window                   └───────────────────────────┘
-        authorities: program upgrade = 2-of-3 multisig (time lock)
-                     protocol admin  = 2-of-3 multisig
-        SPL mint authority = None (no future mint), freeze authority = None
+ participant machine                         operator (public URL)              Solana devnet (program v4)
+ ┌────────────────────────────┐             ┌──────────────────────────┐        ┌──────────────────────────┐
+ │ ARES Miner / ares-lite     │  GET season │ operator_server          │        │ epoch account:           │
+ │  solver (any language) ──► │◄────────────┤  manifest, challenge,    │ create │  manifest hash  ◄────────┤ create_epoch (multisig)
+ │  verifier (local scoring)  │  POST commit│  baseline, receipt log   │ close  │  closed log head ◄───────┤ close_epoch  (multisig)
+ │  commit (salt stays local) ├────────────►│  signed receipts         │ publish│  score digest, root ◄────┤ publish_result total 0
+ │  reveal at reveal phase    ├────────────►│  /status /leaderboard    │        │                          │
+ │  verify ◄──────────────────┤ results.json│  /metrics /results.json  │        │ mint (fixed 100M),       │
+ │  (+ on-chain checks) ◄─────┼─────────────┼──────────────────────────┼────────┤ vaults, vesting          │
+ └────────────────────────────┘             └──────────────────────────┘        └──────────────────────────┘
 ```
 
-| Layer | Where | Trust |
-|---|---|---|
-| Token | classic SPL Token: 1B fixed, mint and freeze authority `None` | none (SPL enforces it) |
-| Reward vault, schedule, claims, epoch cap, verification window, bounty burn | the native Rust program in `solana/program` | code plus the upgrade authority (2-of-3 multisig) |
-| Season operations (close, publish, cancel, bounty award) | admin = 2-of-3 multisig | bounded on-chain (epoch cap, pinned head, window); a wrong root is detectable |
-| Challenge, verification, scoring | off-chain competition service | deterministic and reproducible from public files |
-| Ordering of submissions | operator's receipt log | signed receipts; equivocation is provable |
-
-Not in this repository: the competition service and the WASM verifier core.
-This repository contains the Solana settlement layer and its tooling.
+- **SDK (`sdk/ares_lite`):** canonical CBOR plus framed SHA3 domain hashing; the
+  GRAPH-ROUTE generator and the ARES-WASM-V0 verifier (`_core`, identical to
+  the operator's implementation, proven by the conformance vectors); season,
+  submission and receipt transcripts; scoring; Merkle; the Solana client;
+  leaderboard and metrics; the participant client, CLI and Miner; and the
+  reference operator server (for local practice seasons).
+- **Randomness:** the challenge beacon and the reward beacon are Solana
+  blockhashes at slots fixed in advance. The reward beacon comes after the log closes.
+- **Authority:** the Squads 2-of-3 admin vault creates, closes and publishes
+  epochs. The upgrade authority is a separate 2-of-3 multisig.
