@@ -22,16 +22,28 @@ This does not claim that Season Zero proves AI-driven algorithmic discovery.
 It measures one thing: who can make this solver better, and whether people
 come back to improve it.
 
-## Start in three steps
+## Current round
 
-1. **Install** (Python 3.10+; Rust is optional, see below):
+| | |
+|---|---|
+| Operator URL | **announced with Round 1** (paste it into ARES Miner → Season → Join) |
+| Round 1 | opens Mon 2026-10-12 16:00 UTC · commits close Sat 2026-10-17 16:00 UTC · reveals close Sun 2026-10-18 15:58:30 UTC |
+| Schedule | weekly, see [docs/SEASON_ZERO_SCHEDULE.md](docs/SEASON_ZERO_SCHEDULE.md) (exact times: `<operator URL>/schedule.json`) |
+
+## Start (Windows, Linux, macOS)
+
+**[docs/QUICKSTART.md](docs/QUICKSTART.md)** goes from zero to your first valid submission in about 15 minutes. In short:
+
+1. **Install** Python 3.10+, Git and Rust (`rustup target add wasm32-unknown-unknown`).
+2. Run:
    ```
    git clone https://github.com/gasangalimov/ares-lite-solana
-   cd ares-lite-solana/sdk && pip install .
+   cd ares-lite-solana
+   python -m pip install ./sdk
+   python -m ares_lite.conformance      # must print CONFORMANT
+   ares-miner                           # or: python -m ares_lite.miner.app
    ```
-2. **Open ARES Miner:** `ares-miner`. A local window opens.
-3. **Connect** your devnet wallet's **public address**, **Join** the season's
-   operator URL, and press **START MINING**.
+3. In the window: **Connect** your devnet wallet's **public address** → **Join** the operator URL → **START MINING**.
 
 ARES Miner then:
 - runs your solver (the built-in starter by default);
@@ -40,8 +52,9 @@ ARES Miner then:
 - **reveals** automatically when commits close;
 - **verifies** the published result independently, including on Solana devnet.
 
-You never give it a private key. Mining needs only your public address,
-because the commitment binds it.
+You never give it a private key. Mining needs only your public address, because the commitment binds it.
+
+`python -m ares_lite.smoke` runs a complete private practice round on your machine as a self-test. CI runs the same test on fresh Windows and Linux machines: see `.github/workflows/miner-smoke.yml`.
 
 To write your own solver, follow [docs/QUICKSTART.md](docs/QUICKSTART.md) and
 [sdk/SOLVER_CONTRACT.md](sdk/SOLVER_CONTRACT.md). It takes about 10 minutes,
@@ -54,7 +67,8 @@ and an AI agent can do it for you.
 | `sdk/` | **Public participant SDK + ARES Miner** (`pip install ./sdk`). It holds the canonical encodings ([SPEC.md](sdk/SPEC.md)), the challenge generator and verifier, commit/reveal, local scoring, the solver contract, conformance vectors, the participant CLI `ares-lite`, the miner `ares-miner` and the reference operator server. It needs no private code. |
 | `solana/program` | The on-chain program (v4, frozen economics) deployed on devnet |
 | `solana/tests-svm` | LiteSVM tests: golden vectors, invariants, property tests |
-| `docs/` | How it works, rules, leaderboard, security model, economics, devnet evidence, FAQ |
+| `docs/` | Quick Start, schedule, how it works, rules, leaderboard, security model, economics, devnet evidence, FAQ |
+| `deploy/` | Operator deployment (Docker + Caddy HTTPS, systemd) and runbook |
 
 ## Devnet deployment (v4, frozen economics)
 

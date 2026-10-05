@@ -44,6 +44,7 @@ details summary{cursor:pointer;font-weight:600}h2{font-size:14px;margin:0 0 10px
     <div class="grid" style="margin-top:12px">
       <div class="stat"><div class="k">Season / epoch</div><div class="v" id="season">–</div></div>
       <div class="stat"><div class="k">Phase</div><div class="v" id="phase">–</div></div>
+      <div class="stat"><div class="k" id="nextk">Next deadline</div><div class="v" id="next" style="font-size:14px">–</div></div>
       <div class="stat"><div class="k">Local best (vs baseline)</div><div class="v" id="best">–</div></div>
       <div class="stat"><div class="k">Rank</div><div class="v" id="rank">–</div></div>
       <div class="stat"><div class="k">Iterations</div><div class="v" id="iter">0</div></div>
@@ -82,6 +83,8 @@ function render(s){if(!s)return;const c=s.config||{},m=s.miner||{};running=!!m.r
   txt('who',c.address?('wallet '+c.address.slice(0,6)+'…'+c.address.slice(-4)):'no wallet');
   el('startbtn').textContent=running?'STOP':'START MINING';el('startbtn').disabled=!(s.joined&&c.address);
   if(s.message)txt('msg',s.message);
+  const sc=m.schedule;if(sc){const at=m.phase==='OPEN'?['Commits close',sc.commits_close_at]:m.phase==='CLOSE_COMMITS'?['Reveals close (Miner reveals by itself)',sc.reveals_close_at]:['Results expected by',sc.results_expected_by];
+    txt('nextk',at[0]);const d=new Date(at[1]);txt('next',isNaN(d)?at[1]:d.toLocaleString()+' ('+at[1].replace('T',' ').replace('Z',' UTC')+')');}
   txt('season',m.season?(m.season+' · '+m.epoch):'–');txt('phase',m.phase||'–');
   const b=m.best_seen;txt('best',b===undefined||b===null?'–':((b/100).toFixed(2)+' %'));
   txt('rank',m.rank?('#'+m.rank):'–');txt('iter',m.iteration||0);

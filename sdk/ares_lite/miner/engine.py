@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import shutil
 import threading
 import time
 import traceback
@@ -127,6 +128,10 @@ class Miner:
             spec = load_solver(cfg.solver)
         except SolverError as exc:
             raise ClientError(str(exc)) from exc
+        if cfg.solver == "builtin:starter" and shutil.which("cargo") is None:
+            raise ClientError("the starter solver builds Rust: install Rust from https://rustup.rs, then run "
+                              "`rustup target add wasm32-unknown-unknown` and press START again "
+                              "(or choose builtin:baseline under Advanced to submit the baseline without Rust)")
         work = self.season.workdir()
         manifest = work.manifest()
         self._set(season=manifest.name, epoch=manifest.season_id, challenge_id=work.challenge().challenge_id.hex(), error=None)
@@ -164,7 +169,7 @@ class Miner:
         if time.monotonic() - last_poll >= cfg.poll_seconds or phase == "?":
             status = self.season.status()
             phase = PHASES.get(status.get("phase_code", 0), "OPEN")
-            self._set(phase=phase, entries=status.get("entries"), head=status.get("head"))
+            self._set(phase=phase, entries=status.get("entries"), head=status.get("head"), schedule=status.get("schedule"))
             self._update_rank(address)
             last_poll = time.monotonic()
         if phase == "OPEN":
@@ -220,7 +225,9 @@ class Miner:
                                "score_bps": practice.score_bps if practice else None,
                                "fuel": practice.fuel if practice else None})
         if practice is None:
-            self.log("solver", f"iteration {i}: no solution ({res.status}: {res.notes})", log_tail=res.log_tail[-600:])
+            last = next((ln.strip() for ln in reversed((res.log_tail or "").splitlines()) if ln.strip()), "")
+            self.log("solver", f"iteration {i}: no solution ({res.status}: {res.notes})" + (f" — {last[:200]}" if last else ""),
+                     log_tail=res.log_tail[-600:])
         else:
             self.log("solver", f"iteration {i}: {'valid' if practice.valid else 'INVALID ' + practice.reason}, "
                      f"practice fuel {practice.fuel:,} ({practice.score_bps / 100:.2f}% vs baseline)")
