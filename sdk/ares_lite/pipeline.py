@@ -129,30 +129,66 @@ def finalize(
     return SeasonResult(head, baseline, tuple(evaluations), table, rows, digest, telescoping)
 
 
+def reference_practice_fuel(challenge, module_bytes: bytes, case_count: int = 16) -> int:
+    """Baseline fuel on the public practice BENCHMARK cases only (no gate): the
+    baseline's fuel is heavy-tailed and can exceed the per-test cap on a practice
+    gate case. Matches the participant client's reference (non-consensus)."""
+
+    from .evaluation import benchmark_fuel
+
+    cases = benchmark_cases(challenge, practice_seed(challenge, 1), case_count)
+    if getattr(challenge, "is_scaled", False):
+        from .scaled import run_cases
+
+        res = run_cases(challenge, module_bytes, cases)
+        ok, fuel, reason = res.valid, res.fuel, res.reason
+    else:
+        ok, fuel, reason = benchmark_fuel(challenge, module_bytes, cases)
+    if not ok:
+        raise ValueError(f"baseline fails the practice benchmark: {reason}")
+    return fuel
+
+
 def practice_board(
     challenge: GeneratedChallenge,
     log: ReceiptLog,
     baseline: tuple | None = None,
     case_count: int = 16,
+    cache: dict | None = None,
+    budget_seconds: float | None = None,
 ) -> list[dict]:
     """Live, NON-reward-critical board on public practice seeds.
 
     Everyone can reproduce and overfit it; it exists for feedback only.
+    `cache` (commit_seq -> row) keeps each reveal's evaluation: it never depends
+    on other reveals. With `budget_seconds`, at most that much time is spent on
+    new evaluations per call; the rest appear on later calls (operator stays
+    responsive during a reveal burst).
     """
 
+    import time
+
+    cache = {} if cache is None else cache
+    started = time.monotonic()
+    new = 0  # always evaluate at least one new reveal per call
     seed = practice_seed(challenge, 0)
-    cases = benchmark_cases(challenge, practice_seed(challenge, 1), case_count)
+    cases = None
     rows = []
     for commit_seq, address, reveal, record in log.revealed():
-        evaluation = evaluate(challenge, reveal, record, [seed], cases)
-        rows.append(
-            {
+        if commit_seq not in cache:
+            if budget_seconds is not None and new and time.monotonic() - started >= budget_seconds:
+                continue
+            new += 1
+            if cases is None:
+                cases = benchmark_cases(challenge, practice_seed(challenge, 1), case_count)
+            evaluation = evaluate(challenge, reveal, record, [seed], cases)
+            cache[commit_seq] = {
                 "commit_seq": commit_seq,
                 "address": address.hex(),
                 "valid": evaluation.valid,
                 "reason": evaluation.reason,
                 "practice_fuel": evaluation.benchmark_fuel,
             }
-        )
+        rows.append(dict(cache[commit_seq]))
     rows.sort(key=lambda row: (not row["valid"], row["practice_fuel"], row["commit_seq"]))
     return rows

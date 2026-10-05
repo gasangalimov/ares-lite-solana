@@ -212,6 +212,17 @@ def compute(inputs: Path) -> dict:
     }
 
 
+def _differences(want, have, path: str = "$") -> list[tuple[str, object, object]]:
+    if isinstance(want, dict) and isinstance(have, dict):
+        out = []
+        for key in sorted(set(want) | set(have)):
+            out += _differences(want.get(key, "<missing>"), have.get(key, "<missing>"), f"{path}.{key}")
+        return out
+    if isinstance(want, list) and isinstance(have, list) and len(want) == len(have):
+        return [d for i, (a, b) in enumerate(zip(want, have)) for d in _differences(a, b, f"{path}[{i}]")]
+    return [] if want == have else [(path, want, have)]
+
+
 def main() -> None:
     import argparse
     import sys
@@ -228,6 +239,8 @@ def main() -> None:
     golden = (Path(args.inputs) / "conformance_v1.json").read_text()
     if golden != text:
         print("NON-CONFORMANT: output differs from vectors/conformance_v1.json", file=sys.stderr)
+        for path, want, have in _differences(json.loads(golden), got)[:20]:
+            print(f"  {path}: expected {want!r} got {have!r}"[:400], file=sys.stderr)
         sys.exit(1)
     print("CONFORMANT: reproduces vectors/conformance_v1.json exactly")
 

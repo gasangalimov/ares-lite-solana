@@ -16,6 +16,8 @@ GET  /supply.json     the same as JSON
 GET  /log             receipt log (JSON lines, with chain heads)
 GET  /head            current log head
 GET  /board           live practice board (public seeds, NOT reward-critical)
+GET  /healthz         liveness/readiness probe: ok, uptime, phase, head (cheap)
+GET  /schedule.json   the human-facing round schedule (UTC), when published
 GET  /status          phase (OPEN / CLOSE_COMMITS / CLOSE_REVEALS), head, counts, results availability
 GET  /leaderboard     per-address rank, best score (bps vs baseline), submissions, history, metadata
 GET  /metrics         Season Zero return-iteration metrics (points only)
@@ -48,7 +50,8 @@ from ares_lite.pipeline import practice_board  # noqa: E402
 from ares_lite.submission import SubmissionRejected  # noqa: E402
 from ares_lite.tooling import Workdir  # noqa: E402
 
-MAX_BODY = 200_000  # reveal hex of a 128 KiB profile-2 module plus envelope
+MAX_BODY = 200_000
+STARTED = time.time()  # reveal hex of a 128 KiB profile-2 module plus envelope
 
 
 def make_handler(work: Workdir, receipt_key=None):
@@ -56,14 +59,9 @@ def make_handler(work: Workdir, receipt_key=None):
 
     def baseline_practice_fuel() -> int:
         if "baseline_fuel" not in board_cache:
-            from ares_lite.evaluation import benchmark_cases, evaluate
-            from ares_lite.pipeline import baseline_reveal
-            from ares_lite.season import practice_seed
+            from ares_lite.pipeline import reference_practice_fuel
 
-            challenge = work.challenge()
-            reveal, record = baseline_reveal(work.manifest(), challenge, work.baseline_file.read_bytes())
-            cases = benchmark_cases(challenge, practice_seed(challenge, 1), 16)
-            board_cache["baseline_fuel"] = evaluate(challenge, reveal, record, [practice_seed(challenge, 0)], cases).benchmark_fuel
+            board_cache["baseline_fuel"] = reference_practice_fuel(work.challenge(), work.baseline_file.read_bytes())
         return board_cache["baseline_fuel"]
 
     def received() -> dict[int, int]:
@@ -86,14 +84,33 @@ def make_handler(work: Workdir, receipt_key=None):
         commits = [(e.seq, e.fields[0].hex()) for e in log.entries if e.kind == COMMIT]
         return commits, set(log.reveals)
 
+    def board_worker() -> None:
+        # Practice evaluation is expensive (seconds per solver for lite-L1). It runs here,
+        # off the request path, one reveal at a time and cached by commit_seq, so a reveal
+        # burst never queues commits/reveals behind evaluations. Non-consensus.
+        import threading
+
+        rows_cache: dict = {}
+
+        def loop() -> None:
+            while True:
+                try:
+                    baseline_practice_fuel()  # warm the reference once, off the request path
+                    log = work.log()
+                    rows = practice_board(work.challenge(), log, cache=rows_cache, budget_seconds=0.0)
+                    board_cache["rows"], board_cache["pending"] = rows, len(log.reveals) - len(rows)
+                    if board_cache["pending"] == 0:
+                        time.sleep(1.0)
+                except Exception as exc:  # e.g. a log line being appended right now: retry
+                    board_cache["worker_error"] = f"{type(exc).__name__}: {exc}"[:200]
+                    time.sleep(1.0)
+
+        threading.Thread(target=loop, name="practice-board", daemon=True).start()
+
     def board() -> list:
-        # Practice evaluation is expensive (seconds per solver for lite-L1):
-        # recompute only when the log head changes.
-        log = work.log()
-        key = log.head.hex()
-        if board_cache.get("head") != key:
-            board_cache["head"], board_cache["rows"] = key, practice_board(work.challenge(), log)
-        return board_cache["rows"]
+        return board_cache.get("rows", [])
+
+    board_worker()
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "ares-lite/0"
@@ -146,6 +163,14 @@ def make_handler(work: Workdir, receipt_key=None):
                     self._json(200, {"head": work.log().head.hex(), "entries": len(work.log().entries)})
                 elif self.path == "/board":
                     self._json(200, board())
+                elif self.path == "/healthz":
+                    # Cheap liveness + readiness probe (for the reverse proxy / uptime monitor).
+                    log = work.log()
+                    self._json(200, {"ok": True, "uptime_s": int(time.time() - STARTED), "server_unix": int(time.time()),
+                                     "season_id": work.manifest().season_id, "phase_code": log.phase,
+                                     "entries": len(log.entries), "head": log.head.hex()})
+                elif self.path == "/schedule.json" and (work.path / "schedule.json").exists():
+                    self._send(200, (work.path / "schedule.json").read_bytes())
                 elif self.path == "/status":
                     log = work.log()
                     manifest = work.manifest()
@@ -158,6 +183,10 @@ def make_handler(work: Workdir, receipt_key=None):
                                      "manifest_hash": manifest.manifest_hash().hex(),
                                      "points_only": manifest.reward_policy == "season_zero_points_v0",
                                      "reward_policy": manifest.reward_policy,
+                                     "schedule": json.loads((work.path / "schedule.json").read_text())
+                                     if (work.path / "schedule.json").exists() else None,
+                                     "server_unix": int(time.time()), "uptime_s": int(time.time() - STARTED),
+                                     "board_pending_evaluations": board_cache.get("pending", 0),
                                      "status": "DEVNET / TEST-ONLY"})
                 elif self.path in ("/leaderboard", "/metrics"):
                     from ares_lite import leaderboard
