@@ -1,0 +1,46 @@
+# Fresh-machine smoke test of the public SDK + ARES Miner (DEVNET / TEST-ONLY tooling).
+# Windows is first-class: install Python, install the SDK from this repo, add the
+# Rust wasm target (needed only by the Rust starter solver), launch ares-miner and
+# drive it through join -> START MINING -> commit -> reveal -> verify -> leaderboard.
+name: miner-smoke
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, python: "3.10" }
+          - { os: windows-latest, python: "3.12" }
+          - { os: ubuntu-latest, python: "3.12" }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Rust wasm target (only for Rust solvers)
+        run: rustup target add wasm32-unknown-unknown
+      - name: Install the SDK
+        run: python -m pip install ./sdk
+      - name: Conformance vectors
+        working-directory: ${{ runner.temp }}
+        run: python -m ares_lite.conformance
+      - name: SDK tests
+        working-directory: sdk
+        run: python -m unittest discover -s tests -t . -v
+      - name: Miner end-to-end smoke (installed ares-miner)
+        working-directory: ${{ runner.temp }}
+        run: python -m ares_lite.smoke --out smoke_report.json
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-${{ matrix.os }}-py${{ matrix.python }}
+          path: ${{ runner.temp }}/smoke_report.json
