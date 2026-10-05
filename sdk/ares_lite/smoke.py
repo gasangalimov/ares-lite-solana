@@ -101,7 +101,11 @@ def main(argv=None) -> int:
 
         port = _free_port()
         log = open(tmp / "miner.log", "w")
-        miner_env = {**env, "HOME": str(home), "USERPROFILE": str(home)}
+        # A fresh HOME for the Miner, but keep the real Rust toolchain reachable (rustup finds it via HOME).
+        real_home = Path.home()
+        miner_env = {**env, "HOME": str(home), "USERPROFILE": str(home),
+                     "RUSTUP_HOME": os.environ.get("RUSTUP_HOME", str(real_home / ".rustup")),
+                     "CARGO_HOME": os.environ.get("CARGO_HOME", str(real_home / ".cargo"))}
         miner_proc = subprocess.Popen(_exe("ares-miner") + ["--no-browser", "--port", str(port)], env=miner_env,
                                       stdout=log, stderr=subprocess.STDOUT)
         base = f"http://127.0.0.1:{port}"
@@ -142,6 +146,9 @@ def main(argv=None) -> int:
                 last = miner_state()
                 if pred(last):
                     return last
+                failures = [e["message"] for e in last.get("events", []) if "no solution" in e["message"]]
+                if len(failures) >= 5 or (last.get("error") and not last.get("running")):
+                    step(what, False, {"solver_failures": failures[-3:], "error": last.get("error")})
                 time.sleep(2)
             step(what, False, {"events": last.get("events", [])[-12:], "error": last.get("error")})
 
