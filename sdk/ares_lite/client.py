@@ -181,6 +181,15 @@ class Season:
     def check_manifest_on_chain(self, rpc: str, program_id: str = DEVNET_PROGRAM_ID, mint: str = DEVNET_MINT) -> dict:
         """The epoch account on Solana pins this season's manifest hash (create_epoch)."""
 
+        try:
+            return self._check_manifest_on_chain(rpc, program_id, mint)
+        except ClientError:
+            raise
+        except Exception as exc:  # network/TLS/RPC failures: report, never crash
+            raise ClientError(f"Solana RPC check failed ({type(exc).__name__}: {exc})") from exc
+
+    def _check_manifest_on_chain(self, rpc: str, program_id: str, mint: str) -> dict:
+
         manifest = self.workdir().manifest()
         lite = sc.LiteProgram(sc.b58decode(program_id), sc.b58decode(mint))
         account = sc.Rpc(rpc).account(lite.epoch(manifest.season_id))
@@ -314,6 +323,15 @@ class Season:
 
     def verify(self, rpc: str | None = None, program_id: str = DEVNET_PROGRAM_ID, mint: str = DEVNET_MINT) -> dict:
         """Independent verification of the published result from public data only."""
+
+        try:
+            return self._verify(rpc, program_id, mint)
+        except ClientError:
+            raise
+        except Exception as exc:
+            raise ClientError(f"verification could not complete ({type(exc).__name__}: {exc})") from exc
+
+    def _verify(self, rpc: str | None, program_id: str, mint: str) -> dict:
 
         from .pipeline import finalize
         from .season import Beacon

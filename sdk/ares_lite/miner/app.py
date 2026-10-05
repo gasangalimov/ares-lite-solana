@@ -159,9 +159,9 @@ def make_handler(app: App, token: str, port_ref: list):
                     return self._send(404, b'{"error":"not found"}')
                 out = app.action(self.path[len("/api/"):], body)
                 self._send(200, json.dumps(out).encode())
-            except (ClientError, ValueError, KeyError, OSError) as exc:
-                app.message = f"error: {exc}"
-                self._send(400, json.dumps({"error": str(exc), **app.state()}).encode())
+            except Exception as exc:  # every failure is reported to the window, never a dropped connection
+                app.message = f"error: {type(exc).__name__}: {exc}"[:500]
+                self._send(400, json.dumps({"error": app.message, **app.state()}).encode())
 
         def log_message(self, *args) -> None:
             pass
