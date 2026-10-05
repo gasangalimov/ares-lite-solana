@@ -1,0 +1,19 @@
+[package]
+name = "ares-lite-rewards"
+version = "0.1.0"
+edition = "2021"
+description = "ARES Lite (DEVNET/TEST-ONLY) season reward commitments and Merkle claims over a classic SPL Token mint."
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+
+[dependencies]
+solana-program = "2.3"
+
+[lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = ['cfg(target_os, values("solana"))'] }
