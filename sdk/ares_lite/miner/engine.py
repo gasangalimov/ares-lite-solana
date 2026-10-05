@@ -140,53 +140,73 @@ class Miner:
         iteration = self.snapshot.get("iteration", 0)
         last_poll = 0.0
         phase = "?"
+        failures = 0
         while not self._stop.is_set():
-            if time.monotonic() - last_poll >= cfg.poll_seconds or phase == "?":
-                status = self.season.status()
-                phase = PHASES.get(status.get("phase_code", 0), "OPEN")
-                self._set(phase=phase, entries=status.get("entries"), head=status.get("head"))
-                self._update_rank(address)
-                last_poll = time.monotonic()
-            if phase == "OPEN":
-                if cfg.max_iterations is not None and iteration >= cfg.max_iterations:
-                    self._reveal_pending(only_if=cfg.reveal_early)
-                    self._stop.wait(cfg.poll_seconds)
-                    last_poll = 0.0
+            try:
+                phase, last_poll, iteration, best_committed = self._cycle(
+                    spec, address, phase, last_poll, iteration, best_committed, committed_hashes)
+                if failures:
+                    failures = 0
+                    self._set(error=None)
+            except (ClientError, OSError, RuntimeError, ValueError) as exc:
+                # Transient operator/RPC/build trouble must not end mining: a stopped Miner
+                # would never reveal its commitments. Back off and retry.
+                failures += 1
+                self._set(error=f"{type(exc).__name__}: {exc}"[:300])
+                self.log("error", f"{type(exc).__name__}: {exc} (retrying)")
+                self._stop.wait(min(60, cfg.poll_seconds * failures))
+                phase = "?"
+
+    def _cycle(self, spec, address, phase, last_poll, iteration, best_committed, committed_hashes):
+        """One step of the mining state machine; returns the updated loop state."""
+
+        cfg = self.config
+        if time.monotonic() - last_poll >= cfg.poll_seconds or phase == "?":
+            status = self.season.status()
+            phase = PHASES.get(status.get("phase_code", 0), "OPEN")
+            self._set(phase=phase, entries=status.get("entries"), head=status.get("head"))
+            self._update_rank(address)
+            last_poll = time.monotonic()
+        if phase == "OPEN":
+            if cfg.max_iterations is not None and iteration >= cfg.max_iterations:
+                self._reveal_pending(only_if=cfg.reveal_early)
+                self._stop.wait(cfg.poll_seconds)
+                return phase, 0.0, iteration, best_committed
+            batch = list(range(iteration, iteration + max(1, cfg.workers)))
+            iteration += len(batch)
+            self._set(iteration=iteration)
+            with ThreadPoolExecutor(max_workers=len(batch)) as pool:
+                results = list(pool.map(lambda i: self._one_iteration(spec, i), batch))
+            for i, res, practice in results:
+                if practice is None or not practice.valid:
                     continue
-                batch = list(range(iteration, iteration + max(1, cfg.workers)))
-                iteration += len(batch)
-                self._set(iteration=iteration)
-                with ThreadPoolExecutor(max_workers=len(batch)) as pool:
-                    results = list(pool.map(lambda i: self._one_iteration(spec, i), batch))
-                for i, res, practice in results:
-                    if practice is None or not practice.valid:
-                        continue
-                    digest = hashlib.sha256(res.module).hexdigest()
-                    if best_committed is not None and practice.score_bps <= best_committed:
-                        continue
-                    if digest in committed_hashes:
-                        continue
-                    sub = self.season.commit(res.module, address, cfg.pool, cfg.agents, f"{spec.name}@{spec.version}", practice)
-                    committed_hashes.add(sub["module_sha256"])
-                    best_committed = practice.score_bps
-                    self._set(best={"score_bps": practice.score_bps, "fuel": practice.fuel, "commit_seq": sub["commit_seq"]})
-                    self.log("commit", f"committed improvement: {practice.score_bps / 100:.2f}% vs baseline "
-                             f"(practice fuel {practice.fuel:,}), commit #{sub['commit_seq']}", commit_seq=sub["commit_seq"])
-                    if cfg.reveal_early:
-                        self._reveal_pending(only_if=True)
-            elif phase == "CLOSE_COMMITS":
-                self._reveal_pending(only_if=True)
-                self._stop.wait(cfg.poll_seconds)
-            else:  # CLOSE_REVEALS: wait for published results, then verify once
-                if self.snapshot.get("verification") is None:
-                    try:
-                        result = self.season.verify(cfg.rpc)
-                        self._set(verification=result)
-                        self.log("verify", "results verified independently" if result["all_ok"] else "VERIFICATION FAILED",
-                                 checks=result["checks"])
-                    except ClientError as exc:
-                        self.log("info", f"waiting for published results ({exc})")
-                self._stop.wait(cfg.poll_seconds)
+                digest = hashlib.sha256(res.module).hexdigest()
+                if best_committed is not None and practice.score_bps <= best_committed:
+                    continue
+                if digest in committed_hashes:
+                    continue
+                sub = self.season.commit(res.module, address, cfg.pool, cfg.agents, f"{spec.name}@{spec.version}", practice)
+                committed_hashes.add(sub["module_sha256"])
+                best_committed = practice.score_bps
+                self._set(best={"score_bps": practice.score_bps, "fuel": practice.fuel, "commit_seq": sub["commit_seq"]})
+                self.log("commit", f"committed improvement: {practice.score_bps / 100:.2f}% vs baseline "
+                         f"(practice fuel {practice.fuel:,}), commit #{sub['commit_seq']}", commit_seq=sub["commit_seq"])
+                if cfg.reveal_early:
+                    self._reveal_pending(only_if=True)
+        elif phase == "CLOSE_COMMITS":
+            self._reveal_pending(only_if=True)
+            self._stop.wait(cfg.poll_seconds)
+        else:  # CLOSE_REVEALS: wait for published results, then verify once
+            if self.snapshot.get("verification") is None:
+                try:
+                    result = self.season.verify(cfg.rpc)
+                    self._set(verification=result)
+                    self.log("verify", "results verified independently" if result["all_ok"] else "VERIFICATION FAILED",
+                             checks=result["checks"])
+                except ClientError as exc:
+                    self.log("info", f"waiting for published results ({exc})")
+            self._stop.wait(cfg.poll_seconds)
+        return phase, last_poll, iteration, best_committed
 
     def _one_iteration(self, spec, i: int):
         seed = hashlib.sha256(b"ares-miner/iteration" + i.to_bytes(8, "big") + os.urandom(16)).digest()

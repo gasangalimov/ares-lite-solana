@@ -30,6 +30,30 @@ The devnet build uses a scaled 36 s epoch so that multi-day flows and the
 1-year vesting cliff (365 epochs) could run for real. Production accepts
 only 24 h epochs.
 
+## Season Zero end-to-end on devnet (clean external participant)
+
+- result: `PASS`
+- network: `solana-devnet (DEVNET / TEST-ONLY, points only)`
+- program: `9Tzp3MQFQR9d2VRfreJJgtq3cdYEdaDujRMHVMhpxBoV`
+- epoch: `567`
+- epoch_account: `66XEvMJKYEzmi1ChoueBX1E8KNKi822iJFLpfkyXpd1m`
+- manifest_hash: `71705f08b63b19b5529ec757ffb43c75dc9187fb34a92156bce53314723ea83e`
+- reward_policy: `season_zero_points_v0 (total 0 on-chain)`
+- create_epoch_signature: `4YdoBpe31eznD9WHFabbkipdXh7wGXxBwhPrczVFC73QQu7JnkNj3u6WdnkksQMzSte3AU9tnDLS8ay6jTe85Ghh`
+- close_epoch_signature: `3pJKezNX23DoLEYzutJ9qyCQTZpD7X4PXPuynH88FPSR41ZqEXtBuqMjfxhenabcB8TD4SVvwMzG1gqEZhzuarzw`
+- publish_signature: `KBrNPCbJSkbCqSNbGAdAEoQPF5n7iVKrkUYkf9dsNMA9KUoFCnZHQ81Yd37nbYKK7kqMRfJeK5E5Y9pH4f2QpYz`
+- finalize_epoch_signature: `5GSbR1HcRDTocCxMcGsJcyChJscezKb1txgRgdnXkWs3EETZ48px9FAVTna9mkuv9mXm3emLivzhrSkLdk49XTt5`
+- onchain_status: `FINAL`
+- reward_total: `0`
+- winners: `0`
+- results_digest: `0f57af8da75953e9b9903c01482bf8a78bb274a206e43abf51162265b17cfcd2`
+- log_head: `0831b7f8cf979296ddbcdf13bd92fa5c96ec2129024d6cfb1097b772680d0963`
+- participants: `2 (ARES Miner window + ares-lite CLI), installed from the public repo in a clean HOME`
+- commits_reveals: `3 / 3 (Miner auto-committed 2 improvements during OPEN and auto-revealed at CLOSE_COMMITS)`
+- independent_verify: `all_ok=true for both participants (9 checks incl. on-chain manifest hash, log head, results digest, root, total<=cap, reward beacon)`
+- leaderboard: `rank 1 = 3a8QWX…LLVZ 45.19% (final hidden cases); identical module from 4QHMbH…gfuR marked duplicate_of commit #1, no rank`
+- return_iteration_rate: `{'cohort_first_valid_submission': 2, 'made_2nd': {'participants': 1, 'rate': 0.5}, 'made_3rd': {'participants': 0, 'rate': 0.0}, 'made_5th': {'participants': 0, 'rate': 0.0}}`
+
 ## History
 
 The v0.1 deployment (program v3, superseded economics) remains unchanged as

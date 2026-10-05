@@ -84,6 +84,8 @@ def http_get(server: str, path: str, limit: int = MAX_DOWNLOAD) -> bytes:
 
 def http_post(server: str, path: str, obj: dict) -> dict:
     url = server.rstrip("/") + path
+    if not url.startswith(("http://", "https://")):
+        raise ClientError("server must be an http(s) URL")
     request = urllib.request.Request(url, json.dumps(obj).encode(), {"Content-Type": "application/json"})
     try:
         with urllib.request.urlopen(request, timeout=300) as response:

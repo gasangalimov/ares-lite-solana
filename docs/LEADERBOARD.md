@@ -14,10 +14,14 @@ One row per reward address, sorted by rank:
 | `best_score_bps` | best improvement over the baseline in basis points (integer) |
 | `best_commit_seq` | receipt-log position of that submission |
 | `submissions`, `revealed`, `valid` | counts |
-| `history[]` | `commit_seq`, `revealed`, `valid`, `score_bps`, `unix` (acceptance time, non-consensus), `solver` |
+| `history[]` | `commit_seq`, `revealed`, `valid`, `score_bps`, `unix` (acceptance time, non-consensus), `solver`, `duplicate_of` |
 | `first_commit_unix`, `last_commit_unix` | timestamps (non-consensus) |
 | `metadata` | optional self-declared `pool`, `solver`, `ai_agents` (never scored) |
 | `score_source` | `practice (public cases, live)` during the season; `final (hidden cases)` after results |
+
+**Copies.** A revealed solution identical to an *earlier* commit from a
+*different* address gets `duplicate_of: <earlier commit_seq>`, no score and
+no rank. Re-submitting your own solution is not a copy.
 
 ## `GET /metrics`
 

@@ -76,5 +76,43 @@ class MinerAppSecurityTests(unittest.TestCase):
         self.assertNotIn("id.json", saved)  # not even the key file path is kept
 
 
+class MinerResilienceTests(unittest.TestCase):
+    def test_transient_operator_error_does_not_stop_reveals(self):
+        from unittest import mock
+
+        from ares_lite.client import ClientError
+        from ares_lite.miner.engine import Miner, MinerConfig
+
+        with tempfile.TemporaryDirectory() as d:
+            miner = Miner(MinerConfig(Path(d), "11111111111111111111111111111111", "builtin:baseline", poll_seconds=0))
+            miner.snapshot["baseline_fuel"] = 1000
+            calls = {"status": 0, "reveal": []}
+
+            def status():
+                calls["status"] += 1
+                if calls["status"] == 1:
+                    raise ClientError("GET /status: connection refused")
+                return {"phase_code": 3}  # CLOSE_COMMITS
+
+            def reveal(sub_id):
+                calls["reveal"].append(sub_id)
+                miner.stop()
+
+            season = mock.Mock()
+            season.path = Path(d)
+            season.status = status
+            season.reveal = reveal
+            season.state = lambda: {"submissions": [{"id": 7, "commit_seq": 1, "revealed": False, "module_sha256": "x"}]}
+            season.leaderboard = lambda: []
+            season.workdir.return_value.manifest.return_value.name = "t"
+            season.workdir.return_value.manifest.return_value.season_id = 1
+            season.workdir.return_value.challenge.return_value.challenge_id = b"\0" * 32
+            miner.season = season
+            miner.start()
+            miner.join(20)
+            self.assertEqual(calls["reveal"], [7])
+            self.assertTrue(any("retrying" in e["message"] for e in miner.state()["events"]))
+
+
 if __name__ == "__main__":
     unittest.main()

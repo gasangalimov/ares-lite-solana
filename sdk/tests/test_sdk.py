@@ -76,6 +76,37 @@ class WalletTests(unittest.TestCase):
                 address_from(bad)
 
 
+class ClientHardeningTests(unittest.TestCase):
+    def test_only_http_urls(self):
+        from ares_lite.client import http_get, http_post
+
+        for server in ("file:///etc", "ftp://x", "/etc/passwd"):
+            with self.assertRaises(ClientError):
+                http_get(server, "/manifest.json")
+            with self.assertRaises(ClientError):
+                http_post(server, "/commit", {})
+
+    def test_status_renders_unranked_and_copied_rows(self):
+        import contextlib
+        import io
+        from types import SimpleNamespace
+        from unittest import mock
+
+        from ares_lite import cli
+
+        board = [{"address": "11" * 32, "address_b58": "A" * 44, "rank": 1, "best_score_bps": 4519, "submissions": 2,
+                  "history": []},
+                 {"address": "22" * 32, "address_b58": "B" * 44, "rank": None, "best_score_bps": None, "submissions": 1,
+                  "history": [{"commit_seq": 3, "duplicate_of": 1}]}]
+        season = mock.Mock(status=lambda: {}, state=lambda: {"submissions": []}, leaderboard=lambda: board,
+                           check_receipts=lambda: [])
+        out = io.StringIO()
+        with mock.patch.object(cli, "_season", return_value=season), contextlib.redirect_stdout(out):
+            cli.cmd_status(SimpleNamespace(top=10))
+        self.assertIn("45.19%", out.getvalue())
+        self.assertIn("copy of commit #1: no credit", out.getvalue())
+
+
 class SolverContractTests(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
@@ -214,7 +245,8 @@ class EndToEndTests(unittest.TestCase):
             while time.time() < deadline and not all(s["revealed"] for s in participant.state()["submissions"]
                                                      if s.get("commit_seq") is not None):
                 time.sleep(1)
-            self.assertTrue(all(s["revealed"] for s in participant.state()["submissions"] if s.get("commit_seq") is not None))
+            self.assertTrue(all(s["revealed"] for s in participant.state()["submissions"] if s.get("commit_seq") is not None),
+                            miner.state()["events"][-10:])
             board = participant.leaderboard()
             self.assertEqual(board[0]["address"], wallet.public.hex())
             self.assertEqual(board[0]["rank"], 1)
@@ -227,7 +259,7 @@ class EndToEndTests(unittest.TestCase):
             miner.join(30)
             verification = participant.verify()
             self.assertTrue(verification["all_ok"], verification)
-            self.assertTrue(miner.state()["verification"]["all_ok"])
+            self.assertTrue((miner.state()["verification"] or {}).get("all_ok"), miner.state()["events"][-10:])
             self.assertEqual(participant.check_receipts(), [])
             metrics = json.loads(__import__("ares_lite.client", fromlist=["x"]).http_get(url, "/metrics"))
             self.assertEqual(metrics["participants"], 1)

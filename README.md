@@ -77,4 +77,4 @@ python -m unittest discover -s tests -t .       # SDK tests (local end-to-end ne
 ares-lite --dir ~/ares-lite-season verify       # after a season: recompute the result + on-chain checks
 ```
 
-Security: [SECURITY.md](SECURITY.md), [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md). License: MIT.
+Security: [SECURITY.md](SECURITY.md), [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md), [docs/SDK_MINER_SECURITY_REVIEW.md](docs/SDK_MINER_SECURITY_REVIEW.md). License: MIT.

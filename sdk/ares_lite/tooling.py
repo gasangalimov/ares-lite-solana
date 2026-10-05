@@ -50,17 +50,47 @@ def build_solver(
         work = Path(tmp) / "crate"
         shutil.copytree(crate, work, ignore=shutil.ignore_patterns("target"))
         (work / "src" / "season.rs").write_text(season_rs)
-        env = dict(os.environ)
         cache = Path(os.environ.get("ARES_LITE_CACHE", Path.home() / ".cache" / "ares-lite")) / "graph_route" / f"cache{target_tag}"
-        env["CARGO_TARGET_DIR_OVERRIDE"] = str(cache)
-        out = subprocess.run(
-            ["bash", str(work / "build.sh"), str(difficulty), *features],
-            check=True,
-            capture_output=True,
-            text=True,
-            env=env,
-        ).stdout.strip().splitlines()[-1]
+        out = cargo_build_module(work, difficulty, features, cache)
         return canonicalize_module(Path(out).read_bytes())
+
+
+PROFILE_PAGES = {"0": 2, "1": 4, "2": 8, "L1": 16}
+WASM_STACK = 32_768
+
+
+def cargo_build_module(crate_dir: Path, difficulty, features: list[str], target_root: Path) -> Path:
+    """Build an ARES-WASM-V0 module from a solver crate (same flags as the crate's build.sh,
+    without needing bash, so it works on Windows too). Returns the built module path."""
+
+    pages = PROFILE_PAGES.get(str(difficulty))
+    if pages is None:
+        raise ValueError(f"bad difficulty {difficulty!r}")
+    memory = pages * 65_536
+    # Memory equals the frozen profile page count; the shadow stack sits at the top of
+    # linear memory so it never overlaps the host input/output region at address 0.
+    rustflags = " ".join([
+        "-C target-cpu=mvp",
+        "-C target-feature=-bulk-memory,-sign-ext,-multivalue,-reference-types,-nontrapping-fptoint,-mutable-globals",
+        "-C link-arg=--import-memory=ares,memory", f"-C link-arg=--initial-memory={memory}",
+        f"-C link-arg=--max-memory={memory}", "-C link-arg=--no-entry", "-C link-arg=--export=solve",
+        f"-C link-arg=-zstack-size={WASM_STACK}", "-C link-arg=--no-stack-first",
+        f"-C link-arg=--global-base={memory - WASM_STACK - 4096}", "-C link-arg=--strip-all",
+    ])
+    target_dir = Path(target_root) / ("d" + str(difficulty) + ("-" + "-".join(features) if features else ""))
+    cmd = ["cargo", "build", "--quiet", "--release", "--lib", "--target", "wasm32-unknown-unknown",
+           "--target-dir", str(target_dir)]
+    if features:
+        cmd += ["--features", " ".join(features)]
+    env = {**os.environ, "RUSTFLAGS": rustflags}
+    proc = subprocess.run(cmd, cwd=crate_dir, capture_output=True, text=True, env=env, shell=False)
+    if proc.returncode != 0:
+        raise RuntimeError("cargo build failed (is Rust installed with `rustup target add wasm32-unknown-unknown`?):\n"
+                           + "\n".join((proc.stderr or proc.stdout).strip().splitlines()[-20:]))
+    built = sorted((target_dir / "wasm32-unknown-unknown" / "release").glob("*.wasm"))
+    if len(built) != 1:
+        raise RuntimeError(f"expected one .wasm in {target_dir}, found {len(built)}")
+    return built[0]
 
 
 class Workdir:

@@ -98,8 +98,11 @@ def cmd_status(args) -> None:
     mine = {s["address"] for s in season.state()["submissions"]}
     for row in season.leaderboard()[: args.top]:
         mark = "  <- you" if sc.b58encode(bytes.fromhex(row["address"])) in mine else ""
-        print(f"{row['rank']:>4}. {row['address_b58'][:10]}…  {row['best_score_bps'] / 100:>7.2f}%  "
-              f"submissions {row['submissions']:>3}{mark}")
+        rank = f"{row['rank']:>4}." if row.get("rank") is not None else "   -."
+        score = f"{row['best_score_bps'] / 100:>7.2f}%" if row.get("best_score_bps") is not None else "     --"
+        copies = [h["duplicate_of"] for h in row.get("history", []) if h.get("duplicate_of") is not None]
+        note = f"  (copy of commit #{copies[0]}: no credit)" if copies and row.get("rank") is None else ""
+        print(f"{rank} {row['address_b58'][:10]}…  {score}  submissions {row['submissions']:>3}{mark}{note}")
     problems = season.check_receipts()
     print("receipts: all present in the published log" if not problems else "RECEIPT PROBLEMS:\n" + "\n".join(problems))
 

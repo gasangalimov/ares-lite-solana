@@ -168,7 +168,8 @@ def make_handler(work: Workdir, receipt_key=None):
                     if self.path == "/leaderboard":
                         self._json(200, leaderboard.build(commits, revealed, board(), baseline_practice_fuel(), results(), received(),
                                                           {m["commit_seq"]: m for m in meta},
-                                                          lambda h: sc.b58encode(bytes.fromhex(h))))
+                                                          lambda h: sc.b58encode(bytes.fromhex(h)),
+                                                          {seq: rec.solution_hash.hex() for seq, _a, _r, rec in log.revealed()}))
                     else:
                         self._json(200, leaderboard.metrics(commits, board(), baseline_practice_fuel(), results(), meta))
                 elif self.path in ("/results.json", "/reward_beacon.json", "/references.json"):

@@ -7,7 +7,9 @@ While the season runs, scores come from the public practice board (anyone can
 reproduce it). After results are published, the FINAL hidden-case scores from
 `results.json` replace them. Ranking: best score (higher is better), then the
 earliest commit reaching it. Identical modules from many wallets do not help:
-equal scores rank by the earliest commit, and the policy pays only one winner.
+a revealed solution identical to an EARLIER commit from another address is
+marked `duplicate_of` and earns no score or rank here; under a reward policy
+equal scores rank by the earliest commit and only one winner is paid.
 """
 
 from __future__ import annotations
@@ -20,9 +22,21 @@ def _bps(baseline: int, fuel: int) -> int:
 
 
 def build(commits: list[tuple[int, str]], revealed: set[int], practice_rows: list[dict], baseline_practice_fuel: int,
-          results: dict | None, received: dict[int, int], metadata: dict[int, dict], b58=lambda h: h) -> list[dict]:
+          results: dict | None, received: dict[int, int], metadata: dict[int, dict], b58=lambda h: h,
+          solution_hashes: dict[int, str] | None = None) -> list[dict]:
     """`commits`: [(commit_seq, address_hex)]; `practice_rows`: practice_board() rows;
-    `received`: commit_seq -> unix time the operator accepted it (non-consensus)."""
+    `received`: commit_seq -> unix time the operator accepted it (non-consensus);
+    `solution_hashes`: commit_seq -> revealed solution hash (copy detection)."""
+
+    first_owner: dict[str, tuple[int, str]] = {}
+    duplicate_of: dict[int, int] = {}
+    for seq, address in sorted(commits):
+        h = (solution_hashes or {}).get(seq)
+        if h is None:
+            continue
+        owner = first_owner.setdefault(h, (seq, address))
+        if owner[1] != address:
+            duplicate_of[seq] = owner[0]
 
     final = None
     if results:
@@ -36,12 +50,15 @@ def build(commits: list[tuple[int, str]], revealed: set[int], practice_rows: lis
                                         "valid": 0, "best_score_bps": None, "best_commit_seq": None, "history": [],
                                         "first_commit_unix": received.get(seq), "last_commit_unix": None, "metadata": {}})
         valid, score = (final or practice).get(seq, (None, None))
+        if seq in duplicate_of:
+            score = None  # a copy of another address's earlier solution: no credit
         row["submissions"] += 1
         row["revealed"] += seq in revealed
         row["valid"] += bool(valid)
         row["last_commit_unix"] = received.get(seq)
         row["history"].append({"commit_seq": seq, "revealed": seq in revealed, "valid": valid, "score_bps": score,
-                               "unix": received.get(seq), "solver": metadata.get(seq, {}).get("solver")})
+                               "unix": received.get(seq), "solver": metadata.get(seq, {}).get("solver"),
+                               "duplicate_of": duplicate_of.get(seq)})
         if score is not None and (row["best_score_bps"] is None or score > row["best_score_bps"]):
             row["best_score_bps"], row["best_commit_seq"] = score, seq
         for key in ("pool", "solver"):
