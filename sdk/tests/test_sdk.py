@@ -247,7 +247,10 @@ class EndToEndTests(unittest.TestCase):
                 time.sleep(1)
             self.assertTrue(all(s["revealed"] for s in participant.state()["submissions"] if s.get("commit_seq") is not None),
                             miner.state()["events"][-10:])
-            board = participant.leaderboard()
+            board = participant.leaderboard()  # live practice board is evaluated in the background
+            while time.time() < deadline and (not board or board[0].get("rank") is None):
+                time.sleep(1)
+                board = participant.leaderboard()
             self.assertEqual(board[0]["address"], wallet.public.hex())
             self.assertEqual(board[0]["rank"], 1)
             operator("close-reveals", "--workdir", str(work), "--receipt-key", str(tmp / "keys" / "receipts.json"),

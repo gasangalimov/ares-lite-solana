@@ -1,0 +1,21 @@
+# Alternative to Docker: systemd unit (put Caddy or nginx with TLS in front of 127.0.0.1:8787).
+#   python3 -m venv /opt/ares-lite && /opt/ares-lite/bin/pip install ./sdk
+#   cp deploy/ares-operator.service /etc/systemd/system/ && systemctl enable --now ares-operator
+[Unit]
+Description=ARES Lite Season Zero operator (DEVNET / TEST-ONLY)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ares
+ExecStart=/opt/ares-lite/bin/python -m ares_lite.operator_server --workdir /srv/ares-lite/season --host 127.0.0.1 --port 8787 --receipt-key /srv/ares-lite/keys/receipts.json
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/ares-lite/season
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

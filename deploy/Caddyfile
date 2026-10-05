@@ -1,0 +1,16 @@
+{$ARES_DOMAIN} {
+	encode gzip
+	request_body {
+		max_size 256KB
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		-Server
+	}
+	reverse_proxy operator:8787 {
+		health_uri /healthz
+		health_interval 10s
+	}
+}
